@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["TEAMID.com.companyname.musicbox.app"],
+        "appIDs": ["TEAMID.to.tunetap.app"],
         "components": [
           {
             "/": "/p/*",

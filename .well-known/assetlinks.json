@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.companyname.musicbox.app",
+      "package_name": "to.tunetap.app",
       "sha256_cert_fingerprints": [
         "REPLACE_WITH_APP_SIGNING_CERT_SHA256"
       ]

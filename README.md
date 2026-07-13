@@ -28,8 +28,7 @@ These are intentionally placeholders — the values don't exist yet in the app r
    ```
    keytool -list -v -keystore <release.keystore> -alias <alias> | grep SHA256
    ```
-   (The app currently still uses the template package `com.companyname.musicbox.app`;
-   if that is finalized to a real id, update `package_name` here too.)
+   (`package_name` is `to.tunetap.app`, matching the app's ApplicationId.)
 2. **`apple-app-site-association` → `appIDs`**: replace `TEAMID` with your Apple
    Developer Team ID (iOS is Phase 7/8 — not built yet). Format: `<TeamID>.<bundleId>`.
 
