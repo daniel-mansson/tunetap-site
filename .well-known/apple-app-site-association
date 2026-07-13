@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.com.companyname.musicbox.app"],
+        "components": [
+          {
+            "/": "/p/*",
+            "comment": "TuneTap tag deep links: https://tunetap.to/p/{playlistId}"
+          }
+        ]
+      }
+    ]
+  }
+}
