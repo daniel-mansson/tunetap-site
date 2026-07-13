@@ -30,9 +30,9 @@
       font-weight: 600; margin-top: 10px; }
     .stack { display: flex; flex-direction: column; align-items: center; }
     .hint { font-size: 13px; margin-top: 18px; }
-    details.debug { margin-top: 22px; text-align: left; }
-    details.debug summary { cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
-    pre.debug { margin: 10px 0 0; padding: 12px; background: var(--bg); border: 1px solid var(--border);
+    .debugwrap { margin-top: 22px; text-align: left; }
+    .debuglabel { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    pre.debug { margin: 8px 0 0; padding: 12px; background: var(--bg); border: 1px solid var(--border);
       border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px; line-height: 1.5; color: var(--fg); white-space: pre-wrap; word-break: break-all; }
   </style>
@@ -48,10 +48,10 @@
       <p class="hint" id="hint">Don&rsquo;t have TuneTap yet? It turns NFC tags into one-tap Spotify triggers.</p>
     </div>
 
-    <details class="debug">
-      <summary>Debug — raw link data</summary>
+    <div class="debugwrap">
+      <div class="debuglabel">Debug — raw link data</div>
       <pre class="debug" id="debug"></pre>
-    </details>
+    </div>
   </main>
 
   <script>
