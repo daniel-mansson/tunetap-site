@@ -16,50 +16,91 @@
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--fg); line-height: 1.5;
       display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 24px; }
-    .card { max-width: 440px; width: 100%; background: var(--card); border: 1px solid var(--border);
-      border-radius: 20px; padding: 40px 32px; text-align: center; }
-    .logo { font-size: 44px; margin-bottom: 8px; }
-    h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.02em; }
-    p { color: var(--muted); margin: 10px 0 0; }
-    .btn { display: inline-block; margin-top: 24px; background: var(--accent); color: #04120a;
-      font-weight: 700; text-decoration: none; padding: 13px 26px; border-radius: 999px; }
+    .card { max-width: 460px; width: 100%; background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 28px; text-align: center; }
+    .logo { font-size: 40px; margin-bottom: 6px; }
+    h1 { font-size: 22px; margin: 0 0 2px; letter-spacing: -0.02em; }
+    .title { color: var(--accent); font-weight: 700; }
+    p { color: var(--muted); margin: 8px 0 0; }
+    .embed { margin-top: 22px; border-radius: 12px; overflow: hidden; min-height: 80px; }
+    .embed iframe { display: block; width: 100%; border: 0; }
+    .btn { display: inline-block; margin-top: 18px; background: var(--accent); color: #04120a;
+      font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 999px; }
     .btn.secondary { background: transparent; color: var(--fg); border: 1px solid var(--border);
-      font-weight: 600; margin-top: 12px; }
+      font-weight: 600; margin-top: 10px; }
     .stack { display: flex; flex-direction: column; align-items: center; }
-    a { color: var(--accent); }
-    .hint { font-size: 13px; margin-top: 20px; }
+    .hint { font-size: 13px; margin-top: 18px; }
+    details.debug { margin-top: 22px; text-align: left; }
+    details.debug summary { cursor: pointer; font-size: 12px; color: var(--muted); user-select: none; }
+    pre.debug { margin: 10px 0 0; padding: 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5; color: var(--fg); white-space: pre-wrap; word-break: break-all; }
   </style>
 </head>
 <body>
   <main class="card">
     <div class="logo">🎵</div>
     <div id="content">
-      <h1>Open in Spotify</h1>
-      <p id="lead">If the TuneTap app is installed, this link opens it automatically. Otherwise:</p>
+      <h1 id="heading">Open in Spotify</h1>
+      <p id="lead">If TuneTap is installed, this link opens it automatically. Otherwise:</p>
+      <div class="embed" id="embed"></div>
       <div class="stack" id="actions"></div>
-      <p class="hint">Don&rsquo;t have TuneTap yet? It turns NFC tags into one-tap Spotify triggers.</p>
+      <p class="hint" id="hint">Don&rsquo;t have TuneTap yet? It turns NFC tags into one-tap Spotify triggers.</p>
     </div>
+
+    <details class="debug">
+      <summary>Debug — raw link data</summary>
+      <pre class="debug" id="debug"></pre>
+    </details>
   </main>
+
   <script>
-    // Tag links are https://tunetap.to/p/{playlistId}. When the app is NOT
-    // installed the OS falls through to the browser and GitHub Pages serves
-    // this 404 page for the unmatched /p/ path. Recover the playlist id and
-    // offer a direct Spotify link so the tap still does something useful.
+    // Tag links are https://tunetap.to/p/{playlistId}?t={shortTitle}. When the
+    // app is NOT installed the OS falls through to the browser and GitHub Pages
+    // serves this 404 page (at the original URL, 404 status). Everything below
+    // is recovered client-side from the address bar.
     (function () {
-      var m = location.pathname.match(/^\/p\/([0-9A-Za-z]{22})$/);
+      var path = location.pathname;
+      var params = new URLSearchParams(location.search);
+      var idMatch = path.match(/^\/p\/([0-9A-Za-z]{22})$/);
+      var id = idMatch ? idMatch[1] : null;
+      var title = params.get('t');
+
+      var heading = document.getElementById('heading');
+      var lead = document.getElementById('lead');
+      var embed = document.getElementById('embed');
       var actions = document.getElementById('actions');
-      if (m) {
-        var id = m[1];
-        var web = 'https://open.spotify.com/playlist/' + id;
-        var app = 'spotify:playlist:' + id;
+
+      if (id) {
+        if (title) { heading.innerHTML = '<span class="title"></span>'; heading.firstChild.textContent = title; }
+        else { heading.textContent = 'Open in Spotify'; }
+
+        // Live Spotify player for the playlist — no auth / API key needed.
+        var iframe = document.createElement('iframe');
+        iframe.src = 'https://open.spotify.com/embed/playlist/' + id;
+        iframe.height = 352;
+        iframe.loading = 'lazy';
+        iframe.allow = 'encrypted-media; clipboard-write; fullscreen; picture-in-picture';
+        embed.appendChild(iframe);
+
         actions.innerHTML =
-          '<a class="btn" href="' + app + '">Open in Spotify app</a>' +
-          '<a class="btn secondary" href="' + web + '">Open in web player</a>';
+          '<a class="btn" href="spotify:playlist:' + id + '">Open in Spotify app</a>' +
+          '<a class="btn secondary" href="https://open.spotify.com/playlist/' + id + '">Open in web player</a>';
       } else {
-        document.getElementById('lead').textContent =
-          'This TuneTap link could not be recognized.';
+        heading.textContent = 'Link not recognized';
+        lead.textContent = 'This does not look like a TuneTap tag link.';
+        document.getElementById('hint').style.display = 'none';
         actions.innerHTML = '<a class="btn" href="/">Go to tunetap.to</a>';
       }
+
+      // Debug box: exactly what the page received in the URL.
+      document.getElementById('debug').textContent = JSON.stringify({
+        href: location.href,
+        pathname: path,
+        search: location.search,
+        hash: location.hash,
+        parsed: { playlistId: id, title: title, matched: !!id }
+      }, null, 2);
     })();
   </script>
 </body>
