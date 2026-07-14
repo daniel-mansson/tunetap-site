@@ -5,78 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>TuneTap</title>
   <meta name="description" content="Open this TuneTap playlist in Spotify.">
-  <meta name="theme-color" content="#1db954">
+  <meta name="theme-color" content="#fbfaf8">
+  <meta name="color-scheme" content="light">
   <style>
     :root {
-      --bg: #f6f4f9; --bg2: #efeaf6; --fg: #17131f; --muted: #6b6580;
-      --accent: #1db954; --accent-ink: #04120a; --card: rgba(255,255,255,0.72);
-      --border: rgba(23,19,31,0.08); --shadow: 0 24px 60px -28px rgba(23,19,31,0.35);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0d0b13; --bg2: #16101f; --fg: #f4f1fa; --muted: #a49dba;
-        --accent: #1ed760; --accent-ink: #04120a; --card: rgba(28,23,40,0.6);
-        --border: rgba(255,255,255,0.09); --shadow: 0 24px 60px -24px rgba(0,0,0,0.7);
-      }
+      --bg: #fbfaf8; --bg2: #f1ede6; --ink: #1a1722; --muted: #7a7385;
+      --accent: #1db954; --accent-deep: #0f9d58; --accent-ink: #04120a;
+      --line: rgba(26,23,34,0.10); --line-soft: rgba(26,23,34,0.06);
+      --panel: #ffffff;
+      --lift: 0 1px 0 rgba(255,255,255,0.7) inset, 0 10px 24px -14px rgba(26,23,34,0.22);
     }
     * { box-sizing: border-box; }
     html { -webkit-text-size-adjust: 100%; }
     body {
-      margin: 0; min-height: 100dvh; color: var(--fg); line-height: 1.5;
+      margin: 0; min-height: 100dvh; color: var(--ink); line-height: 1.5;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       background:
-        radial-gradient(120% 80% at 50% -10%, rgba(29,185,84,0.16), transparent 60%),
+        radial-gradient(90% 55% at 50% -8%, rgba(29,185,84,0.10), transparent 62%),
         linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
       background-attachment: fixed;
-      display: flex; align-items: center; justify-content: center;
-      padding: max(24px, env(safe-area-inset-top)) 22px max(24px, env(safe-area-inset-bottom));
+      display: flex; justify-content: center;
+      padding: max(36px, env(safe-area-inset-top)) 22px max(34px, env(safe-area-inset-bottom));
     }
-    main {
-      width: 100%; max-width: 400px; text-align: center;
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 30px; padding: 34px 26px 28px;
-      box-shadow: var(--shadow); backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    }
+    main { width: 100%; max-width: 420px; text-align: center; }
 
-    .mark {
-      width: 76px; height: 76px; margin: 0 auto 18px; border-radius: 24px;
-      display: grid; place-items: center; font-size: 34px;
-      background: linear-gradient(150deg, var(--accent), #0f9d58);
-      box-shadow: 0 14px 30px -12px rgba(29,185,84,0.6);
+    .brand {
+      display: inline-flex; align-items: center; gap: 8px; font-weight: 700;
+      font-size: 15px; letter-spacing: -0.01em; color: var(--ink);
+      padding: 7px 14px 7px 8px; border: 1px solid var(--line); border-radius: 999px;
+      background: var(--panel); box-shadow: var(--lift);
     }
+    .brand .dot {
+      width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
+      font-size: 12px; background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+    }
+    .brand .tap { color: var(--accent); }
 
-    h1 { font-size: 24px; margin: 0; letter-spacing: -0.02em; font-weight: 700; }
+    h1 { font-size: 25px; margin: 24px 0 0; letter-spacing: -0.02em; font-weight: 700; }
     h1 .title { color: var(--accent); }
-    .lead { color: var(--muted); margin: 8px 0 0; font-size: 15px; }
+    .lead { color: var(--muted); margin: 10px auto 0; font-size: 15px; max-width: 340px; }
 
-    .embed { margin-top: 22px; border-radius: 16px; overflow: hidden; min-height: 80px; }
+    .embed {
+      margin-top: 22px; border-radius: 18px; overflow: hidden; min-height: 80px;
+      border: 1px solid var(--line); box-shadow: var(--lift); background: var(--panel);
+    }
     .embed iframe { display: block; width: 100%; border: 0; }
 
-    .actions { margin-top: 18px; display: grid; gap: 10px; }
+    .actions { margin-top: 16px; display: grid; gap: 10px; }
     .btn {
-      display: block; text-decoration: none; padding: 13px 22px; border-radius: 14px;
+      display: block; text-decoration: none; padding: 14px 22px; border-radius: 15px;
       font-weight: 600; font-size: 16px; letter-spacing: -0.01em;
-      transition: transform 0.15s ease, opacity 0.15s ease;
+      transition: transform 0.15s ease;
     }
-    .btn:active { transform: translateY(1px); opacity: 0.9; }
-    .btn.primary { background: var(--accent); color: var(--accent-ink); }
-    .btn.secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: linear-gradient(150deg, var(--accent), var(--accent-deep)); color: var(--accent-ink);
+      box-shadow: 0 12px 26px -14px rgba(29,185,84,0.65);
+    }
+    .btn.secondary { background: var(--panel); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--lift); }
 
-    .get { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--border); }
+    .get { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line-soft); }
     .get p { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
     .stores { display: grid; gap: 10px; }
     .store {
       display: flex; align-items: center; justify-content: center; gap: 11px;
       text-decoration: none; padding: 12px 18px; border-radius: 15px;
-      background: var(--fg); color: var(--bg);
-      transition: transform 0.15s ease, opacity 0.15s ease;
+      background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+      box-shadow: var(--lift); transition: transform 0.15s ease;
     }
-    .store:active { transform: translateY(1px); opacity: 0.85; }
+    .store:active { transform: translateY(1px); }
     .store svg { width: 24px; height: 24px; flex: 0 0 auto; }
     .store .txt { text-align: left; line-height: 1.15; }
-    .store .txt small { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.72; }
+    .store .txt small { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
     .store .txt strong { display: block; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+    .shoplink { display: inline-block; margin-top: 14px; font-size: 13px; color: var(--muted); text-decoration: none; }
+    .shoplink b { color: var(--accent); }
 
     .details { margin-top: 22px; text-align: left; }
     .details summary {
@@ -87,22 +90,23 @@
     .details summary::before { content: "› "; }
     .details[open] summary::before { content: "⌄ "; }
     pre.debug {
-      margin: 10px 0 0; padding: 12px; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px; line-height: 1.5; color: var(--fg); white-space: pre-wrap; word-break: break-all;
+      margin: 10px 0 0; padding: 12px; background: var(--bg2); border: 1px solid var(--line-soft);
+      border-radius: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5; color: var(--ink); white-space: pre-wrap; word-break: break-all;
     }
   </style>
 </head>
 <body>
   <main>
-    <div class="mark">🎵</div>
+    <span class="brand"><span class="dot">🎵</span>Tune<span class="tap">Tap</span></span>
+
     <h1 id="heading">Open in Spotify</h1>
-    <p class="lead" id="lead">If TuneTap is installed this opens automatically. Otherwise, play it here:</p>
+    <p class="lead" id="lead">Play it right here &mdash; or get the app to tap and play.</p>
     <div class="embed" id="embed"></div>
     <div class="actions" id="actions"></div>
 
     <div class="get" id="get" style="display:none">
-      <p>New to TuneTap? Tap a tag, start a playlist &mdash; instantly.</p>
+      <p>Get the app to set up your cards and play with a tap.</p>
       <div class="stores">
         <!-- TODO: replace with the real App Store listing URL/id once published. -->
         <a class="store" href="https://apps.apple.com/app/tunetap" aria-label="Download TuneTap on the App Store">
@@ -115,6 +119,8 @@
           <span class="txt"><small>Get it on</small><strong>Google Play</strong></span>
         </a>
       </div>
+      <!-- TODO: point at the real shop/checkout URL once the store is live. -->
+      <a class="shoplink" href="https://tunetap.to/#shop">Want your own? <b>Shop the cards &rarr;</b></a>
     </div>
 
     <details class="details">
