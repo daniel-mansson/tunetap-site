@@ -21,14 +21,12 @@ Tag URL shape (from the app's `TagLink`): `https://tunetap.to/p/{playlistId}?t={
 
 ## ⚠️ Placeholders to fill before production
 
-These are intentionally placeholders — the values don't exist yet in the app repo:
-
-1. **`assetlinks.json` → `sha256_cert_fingerprints`**: replace `REPLACE_WITH_APP_SIGNING_CERT_SHA256`
-   with the SHA-256 of the app's **release** signing certificate:
-   ```
-   keytool -list -v -keystore <release.keystore> -alias <alias> | grep SHA256
-   ```
-   (`package_name` is `to.tunetap.app`, matching the app's ApplicationId.)
+1. ~~**`assetlinks.json` → `sha256_cert_fingerprints`**: replace `REPLACE_WITH_APP_SIGNING_CERT_SHA256`~~
+   — **DONE** (Phase 06.1-02): now carries the real release + debug cert
+   SHA-256 pair for `to.tunetap.app`. See `docs/RELEASE-SIGNING.md` (in the
+   `musicbox` app repo) for the local signing identity and the Google Play
+   App Signing migration follow-up (appending a third, Play-managed
+   fingerprint once Play distribution begins).
 2. **`apple-app-site-association` → `appIDs`**: replace `TEAMID` with your Apple
    Developer Team ID (iOS is Phase 7/8 — not built yet). Format: `<TeamID>.<bundleId>`.
 

@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "to.tunetap.app",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_APP_SIGNING_CERT_SHA256"
+        "25:B3:DB:6B:F4:6C:3F:C8:51:FC:F6:F1:27:22:6C:18:D5:9F:C9:6F:9E:C3:9D:E2:81:BF:46:85:52:AB:15:66",
+        "1F:AA:06:6D:81:17:54:EA:71:5D:65:5F:62:A1:65:8F:FA:96:92:01:1F:1B:19:E8:F3:AF:6D:5B:09:F8:D4:4D"
       ]
     }
   }
