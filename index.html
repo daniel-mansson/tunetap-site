@@ -4,119 +4,174 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>TuneTap</title>
-  <meta name="description" content="Tap a tag. The music plays. TuneTap turns everyday objects into one-tap Spotify playlists.">
-  <meta name="theme-color" content="#1db954">
+  <meta name="description" content="Beautiful NFC cards that play your Spotify playlists with a tap. Keep them, collect them, or give one as a gift.">
+  <meta name="theme-color" content="#fbfaf8">
+  <meta name="color-scheme" content="light">
   <style>
     :root {
-      --bg: #f6f4f9; --bg2: #efeaf6; --fg: #17131f; --muted: #6b6580;
-      --accent: #1db954; --accent-ink: #04120a; --card: rgba(255,255,255,0.72);
-      --border: rgba(23,19,31,0.08); --shadow: 0 24px 60px -28px rgba(23,19,31,0.35);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0d0b13; --bg2: #16101f; --fg: #f4f1fa; --muted: #a49dba;
-        --accent: #1ed760; --accent-ink: #04120a; --card: rgba(28,23,40,0.6);
-        --border: rgba(255,255,255,0.09); --shadow: 0 24px 60px -24px rgba(0,0,0,0.7);
-      }
+      --bg: #fbfaf8; --bg2: #f1ede6; --ink: #1a1722; --muted: #7a7385;
+      --accent: #1db954; --accent-deep: #0f9d58; --accent-ink: #04120a;
+      --line: rgba(26,23,34,0.10); --line-soft: rgba(26,23,34,0.06);
+      --panel: #ffffff;
+      --lift: 0 1px 0 rgba(255,255,255,0.7) inset, 0 10px 24px -14px rgba(26,23,34,0.22);
     }
     * { box-sizing: border-box; }
     html { -webkit-text-size-adjust: 100%; }
     body {
-      margin: 0; min-height: 100dvh; color: var(--fg); line-height: 1.5;
+      margin: 0; min-height: 100dvh; color: var(--ink); line-height: 1.5;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       background:
-        radial-gradient(120% 80% at 50% -10%, rgba(29,185,84,0.16), transparent 60%),
+        radial-gradient(90% 55% at 50% -8%, rgba(29,185,84,0.10), transparent 62%),
         linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
       background-attachment: fixed;
-      display: flex; align-items: center; justify-content: center;
-      padding: max(24px, env(safe-area-inset-top)) 22px max(24px, env(safe-area-inset-bottom));
+      display: flex; justify-content: center;
+      padding: max(40px, env(safe-area-inset-top)) 22px max(36px, env(safe-area-inset-bottom));
     }
-    main {
-      width: 100%; max-width: 400px; text-align: center;
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 30px; padding: 40px 28px 32px;
-      box-shadow: var(--shadow); backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    }
+    main { width: 100%; max-width: 420px; text-align: center; }
 
-    .mark {
-      width: 88px; height: 88px; margin: 0 auto 22px; border-radius: 26px;
-      display: grid; place-items: center; font-size: 40px;
-      background: linear-gradient(150deg, var(--accent), #0f9d58);
-      box-shadow: 0 14px 30px -10px rgba(29,185,84,0.6);
-      position: relative;
+    .brand {
+      display: inline-flex; align-items: center; gap: 8px; font-weight: 700;
+      font-size: 15px; letter-spacing: -0.01em; color: var(--ink);
+      padding: 7px 14px 7px 8px; border: 1px solid var(--line); border-radius: 999px;
+      background: var(--panel); box-shadow: var(--lift);
     }
-    .mark::after {
-      content: ""; position: absolute; inset: -8px; border-radius: 32px;
-      border: 2px solid var(--accent); opacity: 0.35;
-      animation: pulse 2.6s ease-out infinite;
+    .brand .dot {
+      width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
+      font-size: 12px; background: linear-gradient(150deg, var(--accent), var(--accent-deep));
     }
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.35; }
-      70% { transform: scale(1.18); opacity: 0; }
-      100% { opacity: 0; }
-    }
-    @media (prefers-reduced-motion: reduce) { .mark::after { animation: none; } }
+    .brand .tap { color: var(--accent); }
 
-    h1 { font-size: 30px; margin: 0; letter-spacing: -0.03em; font-weight: 700; }
-    .tap { color: var(--accent); }
-    .lead { font-size: 18px; color: var(--fg); margin: 14px 0 0; font-weight: 500; letter-spacing: -0.01em; }
-    .sub { color: var(--muted); margin: 8px 0 0; font-size: 15px; }
-
-    .steps { text-align: left; margin: 30px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-    .steps li { display: flex; gap: 14px; align-items: center; padding: 9px 0; }
-    .num {
-      flex: 0 0 30px; height: 30px; border-radius: 50%;
-      background: color-mix(in srgb, var(--accent) 16%, transparent);
-      color: var(--accent); font-weight: 700; font-size: 14px;
-      display: grid; place-items: center;
+    /* ---- 3D product card ---- */
+    .stage { perspective: 1300px; margin: 34px 0 6px; height: 236px; position: relative; }
+    .pcard {
+      position: absolute; left: 50%; top: 50%; width: 290px; aspect-ratio: 1.586;
+      border-radius: 20px; transform-style: preserve-3d;
+      border: 1px solid var(--line); box-shadow: 0 30px 50px -26px rgba(26,23,34,0.5);
     }
-    .steps li span:last-child { font-size: 15px; }
+    .pcard.back {
+      background: linear-gradient(150deg, #eef4ef, #e3ece6);
+      transform: translate(-58%, -46%) rotateX(8deg) rotateY(-18deg) rotate(-9deg);
+      filter: saturate(0.9); opacity: 0.85;
+    }
+    .pcard.front {
+      background:
+        radial-gradient(120% 100% at 0% 0%, rgba(29,185,84,0.12), transparent 55%),
+        linear-gradient(150deg, #ffffff, #f4f1ea);
+      transform: translate(-46%, -52%) rotateX(7deg) rotateY(-15deg) rotate(2deg);
+      padding: 16px 18px; text-align: left; display: flex; flex-direction: column;
+      transition: transform 0.4s cubic-bezier(.2,.7,.2,1);
+    }
+    .stage:hover .pcard.front { transform: translate(-46%, -52%) rotateX(3deg) rotateY(-6deg) rotate(1deg); }
+    @media (prefers-reduced-motion: reduce) { .pcard.front { transition: none; } }
+    .pcard .row { display: flex; align-items: center; justify-content: space-between; }
+    .pcard .name { font-weight: 700; font-size: 13px; letter-spacing: -0.01em; }
+    .pcard .nfc { font-size: 11px; color: var(--muted); letter-spacing: 0.12em; }
+    .pcard .plabel { margin-top: auto; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+    .pcard .sublabel { font-size: 11px; color: var(--muted); }
+    .wave { display: flex; align-items: flex-end; gap: 3px; height: 26px; margin: 10px 0 12px; }
+    .wave i { width: 4px; border-radius: 3px; background: linear-gradient(var(--accent), var(--accent-deep)); }
 
-    .cta { margin-top: 30px; display: grid; gap: 12px; }
+    h1 { font-size: 30px; margin: 26px 0 0; letter-spacing: -0.03em; font-weight: 700; }
+    h1 .tap { color: var(--accent); }
+    .lead { font-size: 16px; color: var(--muted); margin: 12px auto 0; max-width: 340px; }
+
+    .cta { margin-top: 26px; display: grid; gap: 11px; }
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      text-decoration: none; padding: 15px 22px; border-radius: 16px;
+      font-weight: 600; font-size: 16px; letter-spacing: -0.01em;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn.shop {
+      background: linear-gradient(150deg, var(--accent), var(--accent-deep)); color: var(--accent-ink);
+      box-shadow: 0 12px 26px -12px rgba(29,185,84,0.65);
+    }
+    .btn.shop:hover { transform: translateY(-2px); }
+    .btn.shop:active { transform: translateY(0); }
+
+    .getapp { margin-top: 22px; }
+    .getapp .label { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+    .stores { display: grid; gap: 10px; }
     .store {
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      text-decoration: none; padding: 13px 20px; border-radius: 16px;
-      background: var(--fg); color: var(--bg);
-      transition: transform 0.15s ease, opacity 0.15s ease;
+      display: flex; align-items: center; justify-content: center; gap: 11px;
+      text-decoration: none; padding: 12px 18px; border-radius: 15px;
+      background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+      box-shadow: var(--lift); transition: transform 0.15s ease;
     }
     .store:hover { transform: translateY(-2px); }
-    .store:active { transform: translateY(0); opacity: 0.85; }
-    .store svg { width: 26px; height: 26px; flex: 0 0 auto; }
+    .store svg { width: 24px; height: 24px; flex: 0 0 auto; }
     .store .txt { text-align: left; line-height: 1.15; }
-    .store .txt small { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.72; }
-    .store .txt strong { display: block; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+    .store .txt small { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .store .txt strong { display: block; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
 
-    footer { margin-top: 26px; font-size: 13px; color: var(--muted); }
+    .feats { margin: 30px 0 0; display: grid; gap: 12px; }
+    .feat {
+      display: flex; gap: 13px; align-items: center; text-align: left;
+      padding: 15px 16px; border-radius: 16px; background: var(--panel);
+      border: 1px solid var(--line-soft); box-shadow: var(--lift);
+    }
+    .feat .ic {
+      flex: 0 0 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+      font-size: 19px; background: color-mix(in srgb, var(--accent) 12%, #fff); border: 1px solid var(--line-soft);
+    }
+    .feat b { display: block; font-size: 15px; letter-spacing: -0.01em; }
+    .feat span { font-size: 13.5px; color: var(--muted); }
+
+    footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
   </style>
 </head>
 <body>
   <main>
-    <div class="mark">🎵</div>
-    <h1>Tune<span class="tap">Tap</span></h1>
-    <p class="lead">Tap a tag. The music plays.</p>
-    <p class="sub">Turn everyday things into one-tap Spotify playlists.</p>
+    <span class="brand"><span class="dot">🎵</span>Tune<span class="tap">Tap</span></span>
 
-    <ol class="steps">
-      <li><span class="num">1</span><span>Get the app and connect Spotify.</span></li>
-      <li><span class="num">2</span><span>Pick a playlist for any tag.</span></li>
-      <li><span class="num">3</span><span>Tap your phone — it just plays.</span></li>
-    </ol>
-
-    <div class="cta">
-      <!-- TODO: replace with the real App Store listing URL/id once published. -->
-      <a class="store" href="https://apps.apple.com/app/tunetap" aria-label="Download TuneTap on the App Store">
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.22-1.17 3.02-.8.86-2.1 1.53-3.2 1.44-.14-1.1.42-2.28 1.13-3.05.79-.86 2.19-1.5 3.24-1.41zM20.7 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.56-2.39 3.5-4.12 3.51-1.54.02-1.94-1.01-4.03-1-2.09.01-2.53 1.02-4.07 1-1.73-.02-3.05-1.77-4.04-3.32-2.77-4.35-3.06-9.45-1.35-12.16 1.21-1.92 3.13-3.05 4.93-3.05 1.84 0 2.99 1.01 4.51 1.01 1.47 0 2.37-1.01 4.5-1.01 1.6 0 3.3.87 4.51 2.38-3.96 2.17-3.32 7.83.21 9.67z"/></svg>
-        <span class="txt"><small>Download on the</small><strong>App Store</strong></span>
-      </a>
-      <!-- Canonical Play listing URL for package to.tunetap.app (live once published). -->
-      <a class="store" href="https://play.google.com/store/apps/details?id=to.tunetap.app" aria-label="Get TuneTap on Google Play">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M3.6 2.2c-.2.2-.35.55-.35 1v17.6c0 .45.15.8.36 1L13 12z"/><path fill="#FBBC04" d="M17.1 8.4 13 12l4.1 3.6 3.6-2.05c1.05-.6 1.05-1.5 0-2.1z"/><path fill="#34A853" d="M3.61 21.8c.33.35.87.4 1.48.05L17.1 15.6 13 12z"/><path fill="#4285F4" d="M13 12 17.1 8.4 5.09 2.15C4.48 1.8 3.94 1.85 3.61 2.2z"/></svg>
-        <span class="txt"><small>Get it on</small><strong>Google Play</strong></span>
-      </a>
+    <div class="stage" aria-hidden="true">
+      <div class="pcard back"></div>
+      <div class="pcard front">
+        <div class="row">
+          <span class="name">Tune<span class="tap">Tap</span></span>
+          <span class="nfc">◍ NFC</span>
+        </div>
+        <div class="wave">
+          <i style="height:40%"></i><i style="height:70%"></i><i style="height:100%"></i><i style="height:55%"></i>
+          <i style="height:85%"></i><i style="height:35%"></i><i style="height:65%"></i><i style="height:95%"></i>
+          <i style="height:45%"></i><i style="height:75%"></i><i style="height:50%"></i><i style="height:90%"></i>
+        </div>
+        <div class="plabel">Chill Vibes</div>
+        <div class="sublabel">Tap to play on Spotify</div>
+      </div>
     </div>
 
-    <footer>Requires the Spotify app and Premium.</footer>
+    <h1>Playlists you can hold.</h1>
+    <p class="lead">Beautiful cards that play your Spotify playlists with a single tap. Keep them, collect them &mdash; or give one as a gift.</p>
+
+    <div class="cta">
+      <!-- TODO: point at the real shop/checkout URL once the store is live. -->
+      <a class="btn shop" href="#shop">Shop the cards</a>
+    </div>
+
+    <div class="getapp">
+      <p class="label">Already have a card? Get the app to set it up.</p>
+      <div class="stores">
+        <!-- TODO: replace with the real App Store listing URL/id once published. -->
+        <a class="store" href="https://apps.apple.com/app/tunetap" aria-label="Download TuneTap on the App Store">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.22-1.17 3.02-.8.86-2.1 1.53-3.2 1.44-.14-1.1.42-2.28 1.13-3.05.79-.86 2.19-1.5 3.24-1.41zM20.7 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.56-2.39 3.5-4.12 3.51-1.54.02-1.94-1.01-4.03-1-2.09.01-2.53 1.02-4.07 1-1.73-.02-3.05-1.77-4.04-3.32-2.77-4.35-3.06-9.45-1.35-12.16 1.21-1.92 3.13-3.05 4.93-3.05 1.84 0 2.99 1.01 4.51 1.01 1.47 0 2.37-1.01 4.5-1.01 1.6 0 3.3.87 4.51 2.38-3.96 2.17-3.32 7.83.21 9.67z"/></svg>
+          <span class="txt"><small>Download on the</small><strong>App Store</strong></span>
+        </a>
+        <!-- Canonical Play listing URL for package to.tunetap.app (live once published). -->
+        <a class="store" href="https://play.google.com/store/apps/details?id=to.tunetap.app" aria-label="Get TuneTap on Google Play">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M3.6 2.2c-.2.2-.35.55-.35 1v17.6c0 .45.15.8.36 1L13 12z"/><path fill="#FBBC04" d="M17.1 8.4 13 12l4.1 3.6 3.6-2.05c1.05-.6 1.05-1.5 0-2.1z"/><path fill="#34A853" d="M3.61 21.8c.33.35.87.4 1.48.05L17.1 15.6 13 12z"/><path fill="#4285F4" d="M13 12 17.1 8.4 5.09 2.15C4.48 1.8 3.94 1.85 3.61 2.2z"/></svg>
+          <span class="txt"><small>Get it on</small><strong>Google Play</strong></span>
+        </a>
+      </div>
+    </div>
+
+    <div class="feats">
+      <div class="feat"><span class="ic">✨</span><span><b>Made to keep</b><span>A shelf-worthy little card for every mood.</span></span></div>
+      <div class="feat"><span class="ic">👆</span><span><b>One tap to play</b><span>Hold a card to your phone &mdash; the music starts.</span></span></div>
+      <div class="feat"><span class="ic">🎁</span><span><b>The perfect gift</b><span>Hand someone a playlist they can actually hold.</span></span></div>
+    </div>
+
+    <footer>Works with Spotify. Premium required to play.</footer>
   </main>
 </body>
 </html>
