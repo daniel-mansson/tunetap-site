@@ -2,62 +2,373 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Card · TuneTap</title>
-  <meta name="description" content="Experimental card display experience.">
-  <meta name="theme-color" content="#fbfaf8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Card Lab · TuneTap</title>
+  <meta name="description" content="Experimental 3D card display.">
+  <meta name="theme-color" content="#e9ebf0">
   <meta name="color-scheme" content="light">
   <meta name="robots" content="noindex">
   <style>
     :root {
-      --bg: #fbfaf8; --bg2: #f1ede6; --ink: #1a1722; --muted: #7a7385;
-      --accent: #1db954; --accent-deep: #0f9d58;
-      --line: rgba(26,23,34,0.10);
-      --panel: #ffffff;
-      --lift: 0 1px 0 rgba(255,255,255,0.7) inset, 0 10px 24px -14px rgba(26,23,34,0.22);
+      --ink: #1a1722;
+      --glass: rgba(255,255,255,0.62);
+      --glass-line: rgba(26,23,34,0.10);
+      --accent: #1db954;
     }
-    * { box-sizing: border-box; }
-    html { -webkit-text-size-adjust: 100%; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; height: 100%; overflow: hidden;
+      overscroll-behavior: none; touch-action: none;
+      position: fixed; inset: 0; width: 100%;
+    }
     body {
-      margin: 0; min-height: 100dvh; color: var(--ink); line-height: 1.5;
+      color: var(--ink);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       background:
-        radial-gradient(90% 55% at 50% -8%, rgba(29,185,84,0.10), transparent 62%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
-      background-attachment: fixed;
-      display: flex; justify-content: center; align-items: center;
-      padding: max(40px, env(safe-area-inset-top)) 22px max(36px, env(safe-area-inset-bottom));
+        radial-gradient(130% 120% at 50% -10%, #ffffff 0%, #eef0f4 42%, #dcdfe6 78%, #cdd1da 100%);
     }
-    main { width: 100%; max-width: 420px; text-align: center; }
+    #gl { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 
-    .brand {
-      display: inline-flex; align-items: center; gap: 8px; font-weight: 700;
-      font-size: 15px; letter-spacing: -0.01em; color: var(--ink);
-      padding: 7px 14px 7px 8px; border: 1px solid var(--line); border-radius: 999px;
-      background: var(--panel); box-shadow: var(--lift);
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      display: flex; align-items: center; gap: 8px;
+      padding: max(12px, env(safe-area-inset-top)) 14px 12px;
+      justify-content: center; flex-wrap: wrap;
     }
-    .brand .dot {
-      width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
-      font-size: 12px; background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+    .btn {
+      appearance: none; border: 1px solid var(--glass-line);
+      background: var(--glass); backdrop-filter: blur(14px) saturate(1.2);
+      -webkit-backdrop-filter: blur(14px) saturate(1.2);
+      color: var(--ink); font: inherit; font-weight: 600; font-size: 14px;
+      letter-spacing: -0.01em; padding: 9px 15px; border-radius: 999px;
+      display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 8px 20px -12px rgba(26,23,34,0.5);
+      transition: transform .12s ease, background .2s ease;
     }
-    .brand .tap { color: var(--accent); }
+    .btn:active { transform: translateY(1px) scale(0.97); }
+    .btn .ico { font-size: 15px; line-height: 1; opacity: 0.85; }
+    .btn.primary { background: var(--ink); color: #fff; border-color: transparent; }
+    .btn.primary .ico { opacity: 1; }
 
-    .placeholder {
-      margin-top: 30px; padding: 40px 26px;
-      border: 1px dashed var(--line); border-radius: 20px;
-      background: var(--panel); box-shadow: var(--lift);
+    .hint {
+      position: fixed; left: 0; right: 0; bottom: max(16px, env(safe-area-inset-bottom));
+      text-align: center; font-size: 12px; letter-spacing: 0.02em;
+      color: rgba(26,23,34,0.42); z-index: 10; pointer-events: none;
     }
-    .placeholder h1 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.02em; }
-    .placeholder p { margin: 0; color: var(--muted); font-size: 15px; }
   </style>
 </head>
 <body>
-  <main>
-    <span class="brand"><span class="dot">♪</span>Tune<span class="tap">Tap</span></span>
-    <section class="placeholder">
-      <h1>Card experience</h1>
-      <p>Placeholder — the card display experiment lives here.</p>
-    </section>
-  </main>
+  <canvas id="gl"></canvas>
+
+  <div class="topbar">
+    <button class="btn primary" id="restart"><span class="ico">↺</span>Restart</button>
+    <button class="btn" id="spin"><span class="ico">⟳</span>Spin</button>
+    <button class="btn" id="flip"><span class="ico">⇄</span>Flip</button>
+  </div>
+
+  <div class="hint" id="hint">card lab — experimental</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    // ---- Card dimensions (credit-card ratio 1.586 : 1) ----
+    const CARD_W = 3.4;
+    const CARD_H = CARD_W / 1.586;   // ~2.143
+    const CARD_D = 0.055;
+    const RADIUS = 0.14;
+
+    const canvas = document.getElementById('gl');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+
+    // ---- Soft studio environment for clean reflections ----
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    // ---- Subtle key light for a directional highlight ----
+    const key = new THREE.DirectionalLight(0xffffff, 1.1);
+    key.position.set(2.2, 4.5, 3.5);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xdfe6ff, 0.35);
+    fill.position.set(-3, 1.5, 2);
+    scene.add(fill);
+
+    // ---- Canvas-texture helpers ----
+    const maxAniso = renderer.capabilities.getMaxAnisotropy();
+    function rr(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+    function makeTexture(draw) {
+      const W = 1024, H = Math.round(1024 / 1.586);
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const ctx = c.getContext('2d');
+      const r = W * (RADIUS / CARD_W);
+      ctx.save();
+      rr(ctx, 0, 0, W, H, r);
+      ctx.clip();
+      draw(ctx, W, H);
+      ctx.restore();
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = maxAniso;
+      return tex;
+    }
+
+    const frontTex = makeTexture((ctx, W, H) => {
+      // base gradient
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, '#14311f');
+      g.addColorStop(0.55, '#0d1c14');
+      g.addColorStop(1, '#070d0a');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // accent glow
+      const glow = ctx.createRadialGradient(W * 0.16, H * 0.12, 10, W * 0.16, H * 0.12, W * 0.7);
+      glow.addColorStop(0, 'rgba(29,185,84,0.34)');
+      glow.addColorStop(1, 'rgba(29,185,84,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+      // chip
+      const cx = W * 0.085, cy = H * 0.30, cw = W * 0.12, ch = cw * 0.74;
+      const cg = ctx.createLinearGradient(cx, cy, cx + cw, cy + ch);
+      cg.addColorStop(0, '#f4d27a'); cg.addColorStop(1, '#c99a3f');
+      ctx.fillStyle = cg; rr(ctx, cx, cy, cw, ch, 10); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + ch / 2); ctx.lineTo(cx + cw, cy + ch / 2);
+      ctx.moveTo(cx + cw / 2, cy); ctx.lineTo(cx + cw / 2, cy + ch);
+      ctx.stroke();
+      // waveform bars
+      const bars = 22, bx0 = W * 0.30, bx1 = W * 0.93, by = H * 0.52;
+      ctx.fillStyle = 'rgba(29,185,84,0.92)';
+      for (let i = 0; i < bars; i++) {
+        const t = i / (bars - 1);
+        const x = bx0 + (bx1 - bx0) * t;
+        const amp = (0.16 + 0.84 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6))) * H * 0.20;
+        const w = (bx1 - bx0) / bars * 0.5;
+        rr(ctx, x, by - amp, w, amp * 2, w / 2); ctx.fill();
+      }
+      // wordmark
+      ctx.textBaseline = 'alphabetic';
+      ctx.font = `700 ${Math.round(H * 0.135)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('Tune', W * 0.075, H * 0.86);
+      const tw = ctx.measureText('Tune').width;
+      ctx.fillStyle = '#1db954';
+      ctx.fillText('Tap', W * 0.075 + tw, H * 0.86);
+      // note glyph
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = `600 ${Math.round(H * 0.16)}px -apple-system, sans-serif`;
+      ctx.fillText('♪', W * 0.88, H * 0.24);
+    });
+
+    const backTex = makeTexture((ctx, W, H) => {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#141821'); g.addColorStop(1, '#0a0d12');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // magnetic stripe
+      ctx.fillStyle = '#05070a';
+      ctx.fillRect(0, H * 0.14, W, H * 0.20);
+      // signature strip
+      ctx.fillStyle = '#e9e6df';
+      rr(ctx, W * 0.06, H * 0.46, W * 0.64, H * 0.16, 8); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.font = `400 ${Math.round(H * 0.075)}px -apple-system, sans-serif`;
+      ctx.fillText('tap to play', W * 0.09, H * 0.575);
+      // NFC hint
+      ctx.strokeStyle = 'rgba(29,185,84,0.8)'; ctx.lineWidth = 4;
+      for (let i = 1; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.arc(W * 0.86, H * 0.55, i * 22, -Math.PI * 0.42, Math.PI * 0.42);
+        ctx.stroke();
+      }
+      // wordmark
+      ctx.font = `700 ${Math.round(H * 0.09)}px -apple-system, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillText('TuneTap', W * 0.06, H * 0.84);
+    });
+
+    // ---- Build the card ----
+    const card = new THREE.Group();
+    scene.add(card);
+
+    const body = new THREE.Mesh(
+      new RoundedBoxGeometry(CARD_W, CARD_H, CARD_D, 6, RADIUS),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x0b1310, roughness: 0.34, metalness: 0.0,
+        clearcoat: 0.8, clearcoatRoughness: 0.22,
+      })
+    );
+    card.add(body);
+
+    function facePlane(tex, front) {
+      const mat = new THREE.MeshPhysicalMaterial({
+        map: tex, roughness: 0.42, metalness: 0.0,
+        clearcoat: 0.55, clearcoatRoughness: 0.28,
+        transparent: true, alphaTest: 0.5,
+      });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(CARD_W * 0.992, CARD_H * 0.992), mat);
+      m.position.z = front ? (CARD_D / 2 + 0.004) : -(CARD_D / 2 + 0.004);
+      if (!front) m.rotation.y = Math.PI;
+      return m;
+    }
+    card.add(facePlane(frontTex, true));
+    card.add(facePlane(backTex, false));
+
+    // ---- Discrete contact shadow (soft radial blob) ----
+    const shadowTex = (() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 256;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(128, 128, 8, 128, 128, 128);
+      g.addColorStop(0, 'rgba(20,25,35,0.55)');
+      g.addColorStop(0.5, 'rgba(20,25,35,0.22)');
+      g.addColorStop(1, 'rgba(20,25,35,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    })();
+    const SHADOW_Y = -1.35;
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(CARD_W * 1.15, CARD_W * 1.15),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false })
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = SHADOW_Y;
+    scene.add(shadow);
+
+    // ---- Camera framing (fit card + margin, portrait-first) ----
+    let START_Y = 5;
+    function resize() {
+      const w = window.innerWidth, h = window.innerHeight;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h, false);
+      const aspect = w / h;
+      camera.aspect = aspect;
+      const vFov = THREE.MathUtils.degToRad(camera.fov);
+      const fitH = (CARD_H * 0.5) / Math.tan(vFov / 2);
+      const fitW = (CARD_W * 0.5) / (Math.tan(vFov / 2) * aspect);
+      const dist = Math.max(fitH, fitW) * 1.9;
+      camera.position.set(0, 0.12, dist);
+      camera.lookAt(0, 0, 0);
+      camera.updateProjectionMatrix();
+      const viewHalfH = Math.tan(vFov / 2) * dist;
+      START_Y = viewHalfH + CARD_H;   // guarantee it starts above the viewport
+    }
+    window.addEventListener('resize', resize);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+    resize();
+
+    // ---- Animation state machine ----
+    const clock = new THREE.Clock();
+    const DROP = 1.0, SPIN = 1.5, SETTLE = 0.8;
+    const INTRO_TOTAL = DROP + SPIN + SETTLE;
+    const SPINS = Math.PI * 2 * 2;   // full turns during intro
+
+    let mode = 'intro';
+    let startT = 0;
+    let curRotY = 0, spinTarget = 0, flip = 0;
+    let pX = 0, pY = 0, tpX = 0, tpY = 0;
+
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+    const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const easeOutBack = t => { const c = 1.70158; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+
+    function restart() {
+      mode = 'intro'; startT = clock.getElapsedTime();
+      curRotY = 0; spinTarget = 0; flip = 0;
+    }
+
+    function updateShadow() {
+      const h = clamp(card.position.y / START_Y, 0, 1);
+      shadow.scale.setScalar(lerp(1.0, 2.5, h));
+      shadow.material.opacity = lerp(0.9, 0.05, h);
+      shadow.position.x = card.position.x * 0.6;
+    }
+
+    function frame() {
+      const now = clock.getElapsedTime();
+      const e = now - startT;
+
+      if (mode === 'intro') {
+        if (e < DROP) {
+          const p = easeOutBack(clamp(e / DROP, 0, 1));
+          card.position.y = lerp(START_Y, 0, p);
+          card.rotation.x = lerp(0.55, 0.12, p);
+          card.rotation.y = lerp(-0.7, 0, p);
+        } else if (e < DROP + SPIN) {
+          const p = easeInOutCubic((e - DROP) / SPIN);
+          card.position.y = Math.sin(p * Math.PI) * 0.12;
+          card.rotation.y = lerp(0, SPINS, p);
+          card.rotation.x = 0.12 + Math.sin(p * Math.PI) * 0.18;
+        } else if (e < INTRO_TOTAL) {
+          const p = easeOutCubic((e - DROP - SPIN) / SETTLE);
+          card.position.y = lerp(0.12, 0, p) + 0;
+          card.rotation.y = SPINS;
+          card.rotation.x = lerp(0.12, 0, p);
+        } else {
+          mode = 'idle';
+          curRotY = SPINS; spinTarget = SPINS;
+        }
+      }
+
+      if (mode === 'idle') {
+        const it = now;
+        const target = spinTarget + flip;
+        curRotY += (target - curRotY) * 0.09;
+        pX += (tpX - pX) * 0.06; pY += (tpY - pY) * 0.06;
+        card.rotation.y = curRotY + Math.sin(it * 0.55) * 0.10 + pX * 0.35;
+        card.rotation.x = Math.sin(it * 0.8) * 0.045 + pY * 0.25;
+        card.position.y = Math.sin(it * 1.1) * 0.05;
+      }
+
+      updateShadow();
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+
+    // ---- Pointer parallax (desktop + touch drag) ----
+    window.addEventListener('pointermove', (ev) => {
+      tpX = (ev.clientX / window.innerWidth) * 2 - 1;
+      tpY = (ev.clientY / window.innerHeight) * 2 - 1;
+    });
+
+    // ---- Controls ----
+    document.getElementById('restart').addEventListener('click', restart);
+    document.getElementById('spin').addEventListener('click', () => {
+      if (mode === 'idle') spinTarget += Math.PI * 2;
+    });
+    document.getElementById('flip').addEventListener('click', () => {
+      if (mode === 'idle') flip = flip === 0 ? Math.PI : 0;
+    });
+
+    restart();
+    frame();
+  </script>
 </body>
 </html>
