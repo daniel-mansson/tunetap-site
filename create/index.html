@@ -61,6 +61,9 @@
     }
     .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .mini { font-size: 13px; color: var(--muted); min-width: 38px; }
+    .status { min-width: auto; }
+    .status.err { color: #b23b3b; }
+    .status.ok { color: var(--muted); }
 
     .btn {
       appearance: none; border: 1px solid var(--line); background: #fff;
@@ -122,6 +125,7 @@
         <button class="btn primary" id="pick">Choose photo</button>
         <input type="file" id="file" accept="image/*" hidden>
       </div>
+      <div class="row"><span class="mini status" id="status"></span></div>
       <div class="row">
         <span class="mini">Zoom</span>
         <input type="range" id="zoom" min="1" max="4" step="0.01" value="1">
@@ -153,7 +157,7 @@
 
     <div class="foot">
       <span>Local preview — nothing is uploaded.</span>
-      <span id="ver">create v1</span>
+      <span id="ver">create v2</span>
     </div>
   </div>
 
@@ -246,19 +250,65 @@
     }
 
     // ---- Photo loading ----
+    // Phone photos can be very high-resolution (or a format <img> can't decode),
+    // which exceeds the browser's max drawable image size and fails silently.
+    // So: decode via createImageBitmap (robust + EXIF-aware), downscale to a safe
+    // cap, fall back to <img>, and surface any error instead of failing quietly.
+    const MAX_SRC = 2600;
     const fileInput = document.getElementById('file');
+    const statusEl = document.getElementById('status');
     document.getElementById('pick').addEventListener('click', () => fileInput.click());
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg || '';
+      statusEl.className = 'mini status' + (kind ? ' ' + kind : '');
+    }
+
+    // Draw any large source down into a capped offscreen canvas (usable as a draw source).
+    function downscale(src) {
+      const w = src.width, h = src.height;
+      const sc = Math.min(1, MAX_SRC / Math.max(w, h));
+      if (sc >= 1 && src instanceof HTMLCanvasElement) return src;
+      const oc = document.createElement('canvas');
+      oc.width = Math.max(1, Math.round(w * sc));
+      oc.height = Math.max(1, Math.round(h * sc));
+      oc.getContext('2d').drawImage(src, 0, 0, oc.width, oc.height);
+      return oc;
+    }
+
+    function loadViaImg(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const im = new Image();
+        im.onload = () => { const c = downscale(im); URL.revokeObjectURL(url); resolve(c); };
+        im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode failed')); };
+        im.src = url;
+      });
+    }
+
+    async function loadFile(file) {
+      setStatus('Loading…', 'ok');
+      try {
+        let source = null;
+        if (window.createImageBitmap) {
+          source = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
+        }
+        if (!source) source = await loadViaImg(file);   // fallback path
+        img = downscale(source);
+        if (source.close) source.close();
+        zoom = 1; panX = 0; panY = 0;
+        document.getElementById('zoom').value = 1;
+        setStatus('', '');
+        draw();
+      } catch (err) {
+        img = null; draw();
+        setStatus("Couldn't load this photo — try a JPG or PNG export.", 'err');
+      }
+    }
+
     fileInput.addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      const url = URL.createObjectURL(f);
-      const im = new Image();
-      im.onload = () => {
-        img = im; zoom = 1; panX = 0; panY = 0;
-        document.getElementById('zoom').value = 1;
-        draw(); URL.revokeObjectURL(url);
-      };
-      im.src = url;
+      if (f) loadFile(f);
     });
 
     // ---- Pan / zoom interaction ----
