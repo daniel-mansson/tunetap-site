@@ -32,10 +32,13 @@
     }
     #gl { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 
-    .topbar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    .dock {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+      display: flex; flex-direction: column; align-items: center; gap: 9px;
+      padding: 12px 14px max(16px, env(safe-area-inset-bottom));
+    }
+    .controls {
       display: flex; align-items: center; gap: 8px;
-      padding: max(12px, env(safe-area-inset-top)) 14px 12px;
       justify-content: center; flex-wrap: wrap;
     }
     .btn {
@@ -54,22 +57,22 @@
     .btn.primary .ico { opacity: 1; }
 
     .hint {
-      position: fixed; left: 0; right: 0; bottom: max(16px, env(safe-area-inset-bottom));
-      text-align: center; font-size: 12px; letter-spacing: 0.02em;
-      color: rgba(26,23,34,0.42); z-index: 10; pointer-events: none;
+      font-size: 12px; letter-spacing: 0.02em;
+      color: rgba(26,23,34,0.42); pointer-events: none;
     }
   </style>
 </head>
 <body>
   <canvas id="gl"></canvas>
 
-  <div class="topbar">
-    <button class="btn primary" id="restart"><span class="ico">↺</span>Restart</button>
-    <button class="btn" id="spin"><span class="ico">⟳</span>Spin</button>
-    <button class="btn" id="flip"><span class="ico">⇄</span>Flip</button>
+  <div class="dock">
+    <div class="hint" id="hint">v6</div>
+    <div class="controls">
+      <button class="btn primary" id="restart"><span class="ico">↺</span>Restart</button>
+      <button class="btn" id="spin"><span class="ico">⟳</span>Spin</button>
+      <button class="btn" id="flip"><span class="ico">⇄</span>Flip</button>
+    </div>
   </div>
-
-  <div class="hint" id="hint">v5</div>
 
   <script type="importmap">
   {
@@ -104,13 +107,17 @@
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-    // ---- Subtle key light for a directional highlight ----
-    const key = new THREE.DirectionalLight(0xffffff, 1.1);
-    key.position.set(2.2, 4.5, 3.5);
-    scene.add(key);
-    const fill = new THREE.DirectionalLight(0xdfe6ff, 0.35);
-    fill.position.set(-3, 1.5, 2);
-    scene.add(fill);
+    // ---- Multi-directional lighting for richer highlights ----
+    const key = new THREE.DirectionalLight(0xffffff, 1.0);          // main, upper right
+    key.position.set(2.2, 4.5, 3.5); scene.add(key);
+    const fill = new THREE.DirectionalLight(0xdfe6ff, 0.35);        // cool fill, left
+    fill.position.set(-3, 1.5, 2); scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xbfd4ff, 0.6);          // cool rim, top-back-left
+    rim.position.set(-2.5, 3.5, -4); scene.add(rim);
+    const warm = new THREE.DirectionalLight(0xffdcae, 0.5);         // warm accent, right
+    warm.position.set(4.5, 0.8, 2); scene.add(warm);
+    const under = new THREE.DirectionalLight(0xeaf0ff, 0.22);       // soft bounce, below-front
+    under.position.set(0, -3, 3); scene.add(under);
 
     // ---- Canvas-texture helpers ----
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
@@ -367,8 +374,9 @@
 
     function updateShadow() {
       const h = clamp(card.position.y / START_Y, 0, 1);
-      shadow.scale.setScalar(lerp(1.0, 2.5, h));
-      shadow.material.opacity = lerp(0.9, 0.05, h);
+      shadow.scale.setScalar(lerp(1.0, 2.6, h));
+      // Softer overall: fainter as it appears (high up) and fainter at rest.
+      shadow.material.opacity = lerp(0.42, 0.015, h);
       shadow.position.x = card.position.x * 0.6;
     }
 
