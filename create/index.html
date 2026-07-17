@@ -126,6 +126,15 @@
     </div>
 
     <div class="group">
+      <span class="lbl">Filter</span>
+      <div class="row" id="filters"></div>
+      <div class="row">
+        <span class="mini">Vignette</span>
+        <input type="range" id="vignette" min="0" max="1" step="0.02" value="0">
+      </div>
+    </div>
+
+    <div class="group">
       <span class="lbl">Header bar</span>
       <input type="text" id="headerText" class="text" value="Morning Focus" maxlength="28" placeholder="Header label">
       <div class="row">
@@ -171,7 +180,7 @@
 
     <div class="foot">
       <span>Local preview — nothing is uploaded.</span>
-      <span id="ver">create v6</span>
+      <span id="ver">create v7</span>
     </div>
   </div>
 
@@ -209,6 +218,9 @@
     let title = 'Focus';
     let titleFont = 0.17;             // fraction of card height
     let titleColor = '#ffffff';
+    // Photo styling.
+    let filterCss = 'none';
+    let vignette = 0;                 // 0..1
 
     // ---- Offscreen canvases used as card-face textures ----
     const frontCanvas = document.createElement('canvas');
@@ -252,7 +264,19 @@
       const maxX = Math.max(0, (w - CW) / 2), maxY = Math.max(0, (h - CH) / 2);
       panX = clamp(panX, -maxX, maxX);
       panY = clamp(panY, -maxY, maxY);
+      fctx.filter = filterCss;
       fctx.drawImage(img, (CW - w) / 2 + panX, (CH - h) / 2 + panY, w, h);
+      fctx.filter = 'none';
+    }
+
+    // Radial vignette darkening the edges/corners.
+    function drawVignette() {
+      if (vignette <= 0) return;
+      const g = fctx.createRadialGradient(CW / 2, CH * 0.5, CH * 0.30, CW / 2, CH * 0.5, CH * 0.95);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(0.6, `rgba(0,0,0,${vignette * 0.22})`);
+      g.addColorStop(1, `rgba(0,0,0,${vignette * 0.62})`);
+      fctx.fillStyle = g; fctx.fillRect(0, 0, CW, CH);
     }
 
     function drawHeader() {
@@ -297,6 +321,7 @@
       roundRectPath(fctx, 0, 0, CW, CH, TEX_R);
       fctx.clip();
       if (img) drawPhoto(); else drawPlaceholder();
+      drawVignette();
       drawHeader();
       drawMainTitle();
       fctx.restore();
@@ -609,6 +634,31 @@
     darkenBtn.addEventListener('click', () => { headerMode = 'darken'; setActive(darkenBtn); compose(); });
     transBtn.addEventListener('click', () => { headerMode = 'transparent'; setActive(transBtn); compose(); });
     selectable.push(darkenBtn, transBtn);
+
+    // ---- Filter presets + vignette ----
+    const FILTERS = [
+      { name: 'None', css: 'none' },
+      { name: 'B&W', css: 'grayscale(1) contrast(1.06)' },
+      { name: 'Sepia', css: 'sepia(0.6) contrast(1.05) brightness(1.02)' },
+      { name: 'Warm', css: 'saturate(1.15) sepia(0.18) brightness(1.03)' },
+      { name: 'Cool', css: 'saturate(1.06) hue-rotate(-12deg) brightness(1.02)' },
+      { name: 'Vivid', css: 'saturate(1.4) contrast(1.1)' },
+      { name: 'Fade', css: 'contrast(0.9) brightness(1.08) saturate(0.82)' },
+    ];
+    const filterWrap = document.getElementById('filters');
+    const filterBtns = [];
+    FILTERS.forEach((f, i) => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button'; b.textContent = f.name;
+      b.addEventListener('click', () => {
+        filterCss = f.css;
+        filterBtns.forEach(x => x.classList.toggle('active', x === b));
+        compose();
+      });
+      filterWrap.appendChild(b); filterBtns.push(b);
+      if (i === 0) b.classList.add('active');
+    });
+    document.getElementById('vignette').addEventListener('input', (e) => { vignette = parseFloat(e.target.value); compose(); });
 
     document.getElementById('headerText').addEventListener('input', (e) => { headerText = e.target.value; compose(); });
     document.getElementById('headerHeight').addEventListener('input', (e) => { headerHeight = parseFloat(e.target.value); compose(); });
