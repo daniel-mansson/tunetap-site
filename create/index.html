@@ -30,25 +30,20 @@
       background-attachment: fixed;
       display: flex; flex-direction: column; align-items: center;
       padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
-      gap: 18px;
+      gap: 14px;
     }
 
-    /* ---- Preview stage ---- */
+    /* ---- 3D preview stage ---- */
     .stage {
-      width: 100%; display: flex; justify-content: center;
-      padding: 14px 0 6px;
+      width: 100%; max-width: 480px;
+      height: min(50vh, 380px);
     }
-    #card {
-      width: min(90vw, 460px); height: auto; display: block;
-      border-radius: 18px;
-      filter: drop-shadow(0 24px 34px rgba(26,23,34,0.28));
-      touch-action: none; cursor: grab;
-    }
-    #card:active { cursor: grabbing; }
+    #gl { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+    #gl:active { cursor: grabbing; }
 
     /* ---- Controls ---- */
     .panel {
-      width: 100%; max-width: 460px;
+      width: 100%; max-width: 480px;
       background: var(--panel); border: 1px solid var(--line);
       border-radius: 20px; padding: 16px;
       box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 14px 30px -20px rgba(26,23,34,0.4);
@@ -110,19 +105,17 @@
       display: flex; justify-content: space-between; align-items: center;
       font-size: 11px; color: var(--muted); padding-top: 2px;
     }
-    .foot a { color: var(--muted); }
   </style>
 </head>
 <body>
-  <div class="stage">
-    <canvas id="card"></canvas>
-  </div>
+  <div class="stage"><canvas id="gl"></canvas></div>
 
   <div class="panel">
     <div class="group">
       <span class="lbl">Photo</span>
       <div class="row">
         <button class="btn primary" id="pick">Choose photo</button>
+        <button class="btn" id="flip">Flip to back</button>
         <input type="file" id="file" accept="image/*" hidden>
       </div>
       <div class="row"><span class="mini status" id="status"></span></div>
@@ -157,27 +150,47 @@
 
     <div class="foot">
       <span>Local preview — nothing is uploaded.</span>
-      <span id="ver">create v3</span>
+      <span id="ver">create v4</span>
     </div>
   </div>
 
-  <script>
-    // ---- Card canvas (credit-card ratio) ----
-    const CW = 1400, CH = Math.round(1400 / 1.586), RAD = CW * 0.04, HEADER = 0.11;
-    const canvas = document.getElementById('card');
-    canvas.width = CW; canvas.height = CH;
-    const ctx = canvas.getContext('2d');
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    // ---- Card geometry (world) + texture (canvas) dimensions ----
+    const CARD_W = 3.4, CARD_H = CARD_W / 1.586, CARD_D = 0.055, RADIUS = 0.14;
+    const CW = 1400, CH = Math.round(1400 / 1.586);
+    const TEX_R = CW * (RADIUS / CARD_W);   // texture corner radius matches mesh silhouette
+    const HEADER = 0.11;
 
     const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
 
-    // ---- State ----
+    // ---- Editable state ----
     let img = null;
     let zoom = 1, panX = 0, panY = 0;
     let headerMode = 'color';          // 'color' | 'darken' | 'transparent'
     let headerColor = '#3a4036';
     let title = 'Morning Focus';
 
-    // ---- Helpers ----
+    // ---- Offscreen canvases used as card-face textures ----
+    const frontCanvas = document.createElement('canvas');
+    frontCanvas.width = CW; frontCanvas.height = CH;
+    const fctx = frontCanvas.getContext('2d');
+    const backCanvas = document.createElement('canvas');
+    backCanvas.width = CW; backCanvas.height = CH;
+    const bctx = backCanvas.getContext('2d');
+
     function roundRectPath(c, x, y, w, h, r) {
       c.beginPath();
       c.moveTo(x + r, y);
@@ -190,20 +203,19 @@
     function contrastInk(hex) {
       const n = hex.replace('#', '');
       const r = parseInt(n.substr(0, 2), 16), g = parseInt(n.substr(2, 2), 16), b = parseInt(n.substr(4, 2), 16);
-      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      return lum > 0.62 ? '#20221c' : '#f2f1ea';
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? '#20221c' : '#f2f1ea';
     }
 
     function drawPlaceholder() {
-      const g = ctx.createLinearGradient(0, 0, CW, CH);
+      const g = fctx.createLinearGradient(0, 0, CW, CH);
       g.addColorStop(0, '#e7e9ee'); g.addColorStop(1, '#d3d7df');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
-      ctx.fillStyle = 'rgba(26,23,34,0.32)';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = `500 ${Math.round(CH * 0.06)}px -apple-system, "Segoe UI", sans-serif`;
-      ctx.fillText('Choose a photo to begin', CW / 2, CH * 0.56);
-      ctx.font = `${Math.round(CH * 0.13)}px -apple-system, sans-serif`;
-      ctx.fillText('▦', CW / 2, CH * 0.42);
+      fctx.fillStyle = g; fctx.fillRect(0, 0, CW, CH);
+      fctx.fillStyle = 'rgba(26,23,34,0.32)';
+      fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
+      fctx.font = `500 ${Math.round(CH * 0.06)}px -apple-system, "Segoe UI", sans-serif`;
+      fctx.fillText('Choose a photo to begin', CW / 2, CH * 0.56);
+      fctx.font = `${Math.round(CH * 0.13)}px -apple-system, sans-serif`;
+      fctx.fillText('▦', CW / 2, CH * 0.42);
     }
 
     function drawPhoto() {
@@ -213,47 +225,236 @@
       const maxX = Math.max(0, (w - CW) / 2), maxY = Math.max(0, (h - CH) / 2);
       panX = clamp(panX, -maxX, maxX);
       panY = clamp(panY, -maxY, maxY);
-      ctx.drawImage(img, (CW - w) / 2 + panX, (CH - h) / 2 + panY, w, h);
+      fctx.drawImage(img, (CW - w) / 2 + panX, (CH - h) / 2 + panY, w, h);
     }
 
     function drawHeader() {
       const hh = CH * HEADER;
       let ink = '#f2f1ea', shadow = false;
       if (headerMode === 'color') {
-        ctx.fillStyle = headerColor; ctx.fillRect(0, 0, CW, hh);
+        fctx.fillStyle = headerColor; fctx.fillRect(0, 0, CW, hh);
         ink = contrastInk(headerColor);
       } else if (headerMode === 'darken') {
-        ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.fillRect(0, 0, CW, hh);
+        fctx.fillStyle = 'rgba(0,0,0,0.58)'; fctx.fillRect(0, 0, CW, hh);
         shadow = true;
       } else {
-        shadow = true; // transparent: photo shows through, text-only
+        shadow = true;
       }
       if (headerMode !== 'transparent') {
-        ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(0, hh - 2, CW, 2);
+        fctx.fillStyle = 'rgba(0,0,0,0.12)'; fctx.fillRect(0, hh - 2, CW, 2);
       }
-      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.font = `500 ${Math.round(hh * 0.42)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
-      if (shadow) { ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 1; }
-      ctx.fillStyle = ink;
-      ctx.fillText(title, CW * 0.045, hh * 0.56);
-      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      fctx.textAlign = 'left'; fctx.textBaseline = 'middle';
+      fctx.font = `500 ${Math.round(hh * 0.42)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
+      if (shadow) { fctx.shadowColor = 'rgba(0,0,0,0.55)'; fctx.shadowBlur = 10; fctx.shadowOffsetY = 1; }
+      fctx.fillStyle = ink;
+      fctx.fillText(title, CW * 0.045, hh * 0.56);
+      fctx.shadowColor = 'transparent'; fctx.shadowBlur = 0; fctx.shadowOffsetY = 0;
     }
 
-    function draw() {
-      ctx.clearRect(0, 0, CW, CH);
-      ctx.save();
-      roundRectPath(ctx, 0, 0, CW, CH, RAD);
-      ctx.clip();
+    function compose() {
+      fctx.clearRect(0, 0, CW, CH);
+      fctx.save();
+      roundRectPath(fctx, 0, 0, CW, CH, TEX_R);
+      fctx.clip();
       if (img) drawPhoto(); else drawPlaceholder();
       drawHeader();
-      ctx.restore();
+      fctx.restore();
+      if (frontTex) frontTex.needsUpdate = true;
     }
 
-    // ---- Photo loading ----
-    // Phone photos can be very high-resolution (or a format <img> can't decode),
-    // which exceeds the browser's max drawable image size and fails silently.
-    // So: decode via createImageBitmap (robust + EXIF-aware), downscale to a safe
-    // cap, fall back to <img>, and surface any error instead of failing quietly.
+    function drawBack() {
+      bctx.clearRect(0, 0, CW, CH);
+      bctx.save();
+      roundRectPath(bctx, 0, 0, CW, CH, TEX_R);
+      bctx.clip();
+      const g = bctx.createLinearGradient(0, 0, 0, CH);
+      g.addColorStop(0, '#d0d5c5'); g.addColorStop(1, '#a9b499');
+      bctx.fillStyle = g; bctx.fillRect(0, 0, CW, CH);
+      const cx = CW * 0.5, cy = CH * 0.5;
+      bctx.strokeStyle = 'rgba(51,80,43,0.7)'; bctx.lineWidth = 6; bctx.lineCap = 'round';
+      for (let i = 1; i <= 3; i++) {
+        bctx.beginPath(); bctx.arc(cx - i * 5, cy, i * CW * 0.05, -Math.PI * 0.4, Math.PI * 0.4); bctx.stroke();
+      }
+      bctx.fillStyle = 'rgba(51,80,43,0.7)';
+      bctx.beginPath(); bctx.arc(cx - CW * 0.02, cy, 8, 0, Math.PI * 2); bctx.fill();
+      bctx.textAlign = 'center'; bctx.textBaseline = 'alphabetic';
+      bctx.fillStyle = 'rgba(38,54,34,0.85)';
+      bctx.font = `600 ${Math.round(CH * 0.075)}px -apple-system, sans-serif`;
+      bctx.fillText('Tap to play', cx, CH * 0.80);
+      bctx.fillStyle = 'rgba(38,54,34,0.5)';
+      bctx.font = `400 ${Math.round(CH * 0.05)}px -apple-system, sans-serif`;
+      bctx.fillText('tunetap.to', cx, CH * 0.90);
+      // header bar
+      const hh = CH * HEADER;
+      bctx.fillStyle = 'rgba(58,64,54,0.97)'; bctx.fillRect(0, 0, CW, hh);
+      bctx.textAlign = 'left'; bctx.textBaseline = 'middle';
+      bctx.fillStyle = '#f2f1ea';
+      bctx.font = `500 ${Math.round(hh * 0.42)}px -apple-system, sans-serif`;
+      bctx.fillText('TuneTap', CW * 0.045, hh * 0.56);
+      bctx.restore();
+      if (backTex) backTex.needsUpdate = true;
+    }
+
+    // ---- Three.js scene ----
+    const glCanvas = document.getElementById('gl');
+    const stage = document.querySelector('.stage');
+    const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, alpha: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(2.2, 4.5, 3.5); scene.add(key);
+    const fill = new THREE.DirectionalLight(0xdfe6ff, 0.35); fill.position.set(-3, 1.5, 2); scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xbfd4ff, 0.6); rim.position.set(-2.5, 3.5, -4); scene.add(rim);
+    const warm = new THREE.DirectionalLight(0xffdcae, 0.5); warm.position.set(4.5, 0.8, 2); scene.add(warm);
+    const under = new THREE.DirectionalLight(0xeaf0ff, 0.22); under.position.set(0, -3, 3); scene.add(under);
+
+    const maxAniso = renderer.capabilities.getMaxAnisotropy();
+    const frontTex = new THREE.CanvasTexture(frontCanvas);
+    frontTex.colorSpace = THREE.SRGBColorSpace; frontTex.anisotropy = maxAniso;
+    const backTex = new THREE.CanvasTexture(backCanvas);
+    backTex.colorSpace = THREE.SRGBColorSpace; backTex.anisotropy = maxAniso;
+
+    const card = new THREE.Group();
+    scene.add(card);
+
+    function roundedRectShape(w, h, r) {
+      const s = new THREE.Shape();
+      const x = -w / 2, y = -h / 2;
+      s.moveTo(x + r, y);
+      s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+      s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+      s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+      return s;
+    }
+    const bodyGeo = new THREE.ExtrudeGeometry(
+      roundedRectShape(CARD_W, CARD_H, RADIUS),
+      { depth: CARD_D, bevelEnabled: false, curveSegments: 32 }
+    );
+    bodyGeo.translate(0, 0, -CARD_D / 2);
+    card.add(new THREE.Mesh(bodyGeo, new THREE.MeshPhysicalMaterial({
+      color: 0xe8e5db, roughness: 0.4, metalness: 0.0, clearcoat: 0.7, clearcoatRoughness: 0.25,
+    })));
+
+    function facePlane(tex, front) {
+      const mat = new THREE.MeshPhysicalMaterial({
+        map: tex, roughness: 0.42, metalness: 0.0, clearcoat: 0.5, clearcoatRoughness: 0.3,
+        transparent: true, alphaTest: 0.5,
+      });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(CARD_W, CARD_H), mat);
+      m.position.z = front ? (CARD_D / 2 + 0.004) : -(CARD_D / 2 + 0.004);
+      if (!front) m.rotation.y = Math.PI;
+      return m;
+    }
+    card.add(facePlane(frontTex, true));
+    card.add(facePlane(backTex, false));
+
+    // soft contact shadow
+    const shadowTex = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 256;
+      const g = c.getContext('2d').createRadialGradient(128, 128, 8, 128, 128, 128);
+      g.addColorStop(0, 'rgba(20,25,35,0.5)'); g.addColorStop(0.5, 'rgba(20,25,35,0.2)'); g.addColorStop(1, 'rgba(20,25,35,0)');
+      const cx = c.getContext('2d'); cx.fillStyle = g; cx.fillRect(0, 0, 256, 256);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+    })();
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(CARD_W * 1.2, CARD_W * 1.2),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, opacity: 0.33, depthWrite: false })
+    );
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = -CARD_H * 0.5 - 0.18;
+    scene.add(shadow);
+
+    function fit() {
+      const w = stage.clientWidth, h = stage.clientHeight;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      const vFov = THREE.MathUtils.degToRad(camera.fov);
+      const fitH = (CARD_H * 0.5) / Math.tan(vFov / 2);
+      const fitW = (CARD_W * 0.5) / (Math.tan(vFov / 2) * (w / h));
+      camera.position.set(0, 0.1, Math.max(fitH, fitW) * 1.32);
+      camera.lookAt(0, 0, 0);
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', fit);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+    fit();
+
+    // ---- Flip animation ----
+    let targetFlip = 0, curFlip = 0;
+    const flipBtn = document.getElementById('flip');
+    flipBtn.addEventListener('click', () => {
+      targetFlip = targetFlip === 0 ? Math.PI : 0;
+      flipBtn.textContent = targetFlip === 0 ? 'Flip to back' : 'Show front';
+    });
+
+    function tick() {
+      curFlip += (targetFlip - curFlip) * 0.12;
+      card.rotation.y = curFlip;
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+
+    // ---- Crop panning mapped through the card's on-screen size ----
+    const _a = new THREE.Vector3(), _b = new THREE.Vector3();
+    function texPerScreenPx() {
+      _a.set(-CARD_W / 2, 0, CARD_D / 2).project(camera);
+      _b.set(CARD_W / 2, 0, CARD_D / 2).project(camera);
+      const cardPx = Math.abs((_b.x - _a.x) * 0.5 * glCanvas.clientWidth);
+      return cardPx > 1 ? CW / cardPx : 1;
+    }
+
+    const pts = new Map();
+    let lastDist = 0, lastMid = null;
+    const zoomSlider = document.getElementById('zoom');
+
+    glCanvas.addEventListener('pointerdown', (e) => {
+      glCanvas.setPointerCapture(e.pointerId);
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    });
+    glCanvas.addEventListener('pointermove', (e) => {
+      if (!pts.has(e.pointerId)) return;
+      const prev = pts.get(e.pointerId);
+      const f = texPerScreenPx();
+      if (pts.size === 1 && img) {
+        panX += (e.clientX - prev.x) * f;
+        panY += (e.clientY - prev.y) * f;
+        compose();
+      }
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        const a = [...pts.values()];
+        const dist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+        const mid = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
+        if (lastDist && img) {
+          zoom = clamp(zoom * (dist / lastDist), 1, 4);
+          panX += (mid.x - lastMid.x) * f; panY += (mid.y - lastMid.y) * f;
+          zoomSlider.value = zoom; compose();
+        }
+        lastDist = dist; lastMid = mid;
+      }
+    });
+    function endPointer(e) { pts.delete(e.pointerId); if (pts.size < 2) { lastDist = 0; lastMid = null; } }
+    glCanvas.addEventListener('pointerup', endPointer);
+    glCanvas.addEventListener('pointercancel', endPointer);
+    glCanvas.addEventListener('wheel', (e) => {
+      if (!img) return;
+      e.preventDefault();
+      zoom = clamp(zoom * (e.deltaY < 0 ? 1.08 : 0.925), 1, 4);
+      zoomSlider.value = zoom; compose();
+    }, { passive: false });
+
+    zoomSlider.addEventListener('input', () => { zoom = parseFloat(zoomSlider.value); compose(); });
+
+    // ---- Photo loading (robust decode + downscale + HEIC) ----
     const MAX_SRC = 2600;
     const fileInput = document.getElementById('file');
     const statusEl = document.getElementById('status');
@@ -263,8 +464,6 @@
       statusEl.textContent = msg || '';
       statusEl.className = 'mini status' + (kind ? ' ' + kind : '');
     }
-
-    // Draw any large source down into a capped offscreen canvas (usable as a draw source).
     function downscale(src) {
       const w = src.width, h = src.height;
       const sc = Math.min(1, MAX_SRC / Math.max(w, h));
@@ -275,18 +474,15 @@
       oc.getContext('2d').drawImage(src, 0, 0, oc.width, oc.height);
       return oc;
     }
-
-    function loadViaImg(file) {
+    function loadViaImg(blob) {
       return new Promise((resolve, reject) => {
-        const url = URL.createObjectURL(file);
+        const url = URL.createObjectURL(blob);
         const im = new Image();
         im.onload = () => { const c = downscale(im); URL.revokeObjectURL(url); resolve(c); };
         im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode failed')); };
         im.src = url;
       });
     }
-
-    // Native decode (createImageBitmap, then <img>); returns a draw source or null.
     async function tryNative(blob) {
       if (window.createImageBitmap) {
         const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' }).catch(() => null);
@@ -294,22 +490,17 @@
       }
       return await loadViaImg(blob).catch(() => null);
     }
-
     function looksHeic(file) {
-      const t = (file.type || '').toLowerCase();
-      const n = (file.name || '').toLowerCase();
+      const t = (file.type || '').toLowerCase(), n = (file.name || '').toLowerCase();
       return t.includes('heic') || t.includes('heif') || /\.(heic|heif)$/.test(n);
     }
-
-    // Lazy-load the HEIC decoder (libheif via heic2any) only when needed.
     let heicLibPromise = null;
     function loadHeicLib() {
       if (heicLibPromise) return heicLibPromise;
       heicLibPromise = new Promise((res, rej) => {
         const s = document.createElement('script');
         s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-        s.onload = res;
-        s.onerror = () => { heicLibPromise = null; rej(new Error('heic lib failed')); };
+        s.onload = res; s.onerror = () => { heicLibPromise = null; rej(new Error('heic lib failed')); };
         document.head.appendChild(s);
       });
       return heicLibPromise;
@@ -319,11 +510,10 @@
       const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
       return Array.isArray(out) ? out[0] : out;
     }
-
     async function decodeToSource(file) {
-      let src = await tryNative(file);                 // fast path (incl. browsers with native HEIF)
+      let src = await tryNative(file);
       if (src) return src;
-      if (looksHeic(file)) {                            // convert HEIC -> JPEG, then decode
+      if (looksHeic(file)) {
         setStatus('Converting HEIC…', 'ok');
         const jpeg = await heicToJpeg(file);
         src = await tryNative(jpeg);
@@ -331,72 +521,23 @@
       }
       throw new Error('unsupported');
     }
-
     async function loadFile(file) {
       setStatus('Loading…', 'ok');
       try {
         const source = await decodeToSource(file);
         img = downscale(source);
         if (source.close) source.close();
-        zoom = 1; panX = 0; panY = 0;
-        document.getElementById('zoom').value = 1;
-        setStatus('', '');
-        draw();
+        zoom = 1; panX = 0; panY = 0; zoomSlider.value = 1;
+        setStatus('', ''); compose();
       } catch (err) {
-        img = null; draw();
+        img = null; compose();
         setStatus("Couldn't load this photo — try a JPG or PNG export.", 'err');
       }
     }
-
     fileInput.addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (f) loadFile(f);
     });
-
-    // ---- Pan / zoom interaction ----
-    const zoomSlider = document.getElementById('zoom');
-    zoomSlider.addEventListener('input', () => { zoom = parseFloat(zoomSlider.value); draw(); });
-
-    const pts = new Map();
-    let lastDist = 0, lastMid = null;
-    const scaleFactor = () => CW / canvas.getBoundingClientRect().width;
-
-    canvas.addEventListener('pointerdown', (e) => {
-      canvas.setPointerCapture(e.pointerId);
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    });
-    canvas.addEventListener('pointermove', (e) => {
-      if (!pts.has(e.pointerId) || !img) { if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); return; }
-      const prev = pts.get(e.pointerId);
-      const f = scaleFactor();
-      if (pts.size === 1) {
-        panX += (e.clientX - prev.x) * f;
-        panY += (e.clientY - prev.y) * f;
-        draw();
-      }
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pts.size === 2) {
-        const a = [...pts.values()];
-        const dist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
-        const mid = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
-        if (lastDist) {
-          zoom = clamp(zoom * (dist / lastDist), 1, 4);
-          panX += (mid.x - lastMid.x) * f;
-          panY += (mid.y - lastMid.y) * f;
-          zoomSlider.value = zoom; draw();
-        }
-        lastDist = dist; lastMid = mid;
-      }
-    });
-    function endPointer(e) { pts.delete(e.pointerId); if (pts.size < 2) { lastDist = 0; lastMid = null; } }
-    canvas.addEventListener('pointerup', endPointer);
-    canvas.addEventListener('pointercancel', endPointer);
-    canvas.addEventListener('wheel', (e) => {
-      if (!img) return;
-      e.preventDefault();
-      zoom = clamp(zoom * (e.deltaY < 0 ? 1.08 : 0.925), 1, 4);
-      zoomSlider.value = zoom; draw();
-    }, { passive: false });
 
     // ---- Header controls ----
     const PRESETS = ['#3a4036', '#2b3a2f', '#22303c', '#3a2f4a', '#5c4433', '#7a3b3b', '#cbd0bd', '#f2f1ea'];
@@ -407,47 +548,39 @@
     const darkenBtn = document.getElementById('darken');
     const transBtn = document.getElementById('transparent');
     const selectable = [];
-
     function setActive(el) { selectable.forEach(s => s.classList.toggle('active', s === el)); }
 
     PRESETS.forEach((col, i) => {
       const b = document.createElement('button');
       b.className = 'swatch'; b.style.background = col; b.type = 'button';
-      b.addEventListener('click', () => {
-        headerMode = 'color'; headerColor = col; setActive(b); draw();
-      });
-      swatchWrap.appendChild(b);
-      selectable.push(b);
+      b.addEventListener('click', () => { headerMode = 'color'; headerColor = col; setActive(b); compose(); });
+      swatchWrap.appendChild(b); selectable.push(b);
       if (i === 0) setActive(b);
     });
-
     customSw.style.background = customInput.value;
     customChip.addEventListener('click', () => customInput.click());
     customInput.addEventListener('input', () => {
       headerMode = 'color'; headerColor = customInput.value;
-      customSw.style.background = customInput.value;
-      setActive(customChip); draw();
+      customSw.style.background = customInput.value; setActive(customChip); compose();
     });
     selectable.push(customChip);
-
-    darkenBtn.addEventListener('click', () => { headerMode = 'darken'; setActive(darkenBtn); draw(); });
-    transBtn.addEventListener('click', () => { headerMode = 'transparent'; setActive(transBtn); draw(); });
+    darkenBtn.addEventListener('click', () => { headerMode = 'darken'; setActive(darkenBtn); compose(); });
+    transBtn.addEventListener('click', () => { headerMode = 'transparent'; setActive(transBtn); compose(); });
     selectable.push(darkenBtn, transBtn);
 
-    // ---- Title ----
-    document.getElementById('title').addEventListener('input', (e) => {
-      title = e.target.value; draw();
-    });
+    document.getElementById('title').addEventListener('input', (e) => { title = e.target.value; compose(); });
 
-    // ---- Save (local) ----
     document.getElementById('save').addEventListener('click', () => {
       const a = document.createElement('a');
       a.download = 'tunetap-card.png';
-      a.href = canvas.toDataURL('image/png');
+      a.href = frontCanvas.toDataURL('image/png');
       a.click();
     });
 
-    draw();
+    // ---- Go ----
+    drawBack();
+    compose();
+    tick();
   </script>
 </body>
 </html>
