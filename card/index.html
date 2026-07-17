@@ -66,7 +66,7 @@
     <button class="btn" id="flip"><span class="ico">⇄</span>Flip</button>
   </div>
 
-  <div class="hint" id="hint">v1</div>
+  <div class="hint" id="hint">v2</div>
 
   <script type="importmap">
   {
@@ -79,7 +79,6 @@
 
   <script type="module">
     import * as THREE from 'three';
-    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
     // ---- Card dimensions (credit-card ratio 1.586 : 1) ----
@@ -214,8 +213,30 @@
     const card = new THREE.Group();
     scene.add(card);
 
+    // Rounded-rectangle profile extruded to card thickness. Unlike RoundedBoxGeometry
+    // (whose corner radius is clamped to half the depth -> nearly square on a thin card),
+    // this gives a true RADIUS face corner that matches the art silhouette exactly.
+    function roundedRectShape(w, h, r) {
+      const s = new THREE.Shape();
+      const x = -w / 2, y = -h / 2;
+      s.moveTo(x + r, y);
+      s.lineTo(x + w - r, y);
+      s.quadraticCurveTo(x + w, y, x + w, y + r);
+      s.lineTo(x + w, y + h - r);
+      s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      s.lineTo(x + r, y + h);
+      s.quadraticCurveTo(x, y + h, x, y + h - r);
+      s.lineTo(x, y + r);
+      s.quadraticCurveTo(x, y, x + r, y);
+      return s;
+    }
+    const bodyGeo = new THREE.ExtrudeGeometry(
+      roundedRectShape(CARD_W, CARD_H, RADIUS),
+      { depth: CARD_D, bevelEnabled: false, curveSegments: 32 }
+    );
+    bodyGeo.translate(0, 0, -CARD_D / 2);   // center thickness on z=0
     const body = new THREE.Mesh(
-      new RoundedBoxGeometry(CARD_W, CARD_H, CARD_D, 6, RADIUS),
+      bodyGeo,
       new THREE.MeshPhysicalMaterial({
         color: 0x0b1310, roughness: 0.34, metalness: 0.0,
         clearcoat: 0.8, clearcoatRoughness: 0.22,
