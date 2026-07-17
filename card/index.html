@@ -229,7 +229,9 @@
         clearcoat: 0.55, clearcoatRoughness: 0.28,
         transparent: true, alphaTest: 0.5,
       });
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(CARD_W * 0.992, CARD_H * 0.992), mat);
+      // Full card size so the art's rounded corners (radius = RADIUS/CARD_W in the
+      // texture) line up exactly with the mesh silhouette — no corner mismatch.
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(CARD_W, CARD_H), mat);
       m.position.z = front ? (CARD_D / 2 + 0.004) : -(CARD_D / 2 + 0.004);
       if (!front) m.rotation.y = Math.PI;
       return m;
