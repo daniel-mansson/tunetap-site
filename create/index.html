@@ -126,7 +126,16 @@
     </div>
 
     <div class="group">
-      <span class="lbl">Header</span>
+      <span class="lbl">Header bar</span>
+      <input type="text" id="headerText" class="text" value="Morning Focus" maxlength="28" placeholder="Header label">
+      <div class="row">
+        <span class="mini">Height</span>
+        <input type="range" id="headerHeight" min="0.05" max="0.22" step="0.005" value="0.11">
+      </div>
+      <div class="row">
+        <span class="mini">Font</span>
+        <input type="range" id="headerFont" min="0.26" max="0.64" step="0.01" value="0.42">
+      </div>
       <div class="row swatches" id="swatches"></div>
       <div class="row">
         <label class="chip" id="customChip">
@@ -141,7 +150,19 @@
 
     <div class="group">
       <span class="lbl">Title</span>
-      <input type="text" id="title" class="text" value="Morning Focus" maxlength="28" placeholder="Card title">
+      <input type="text" id="title" class="text" value="Focus" maxlength="24" placeholder="Big title (bottom-left)">
+      <div class="row">
+        <span class="mini">Size</span>
+        <input type="range" id="titleFont" min="0.08" max="0.30" step="0.005" value="0.17">
+      </div>
+      <div class="row swatches" id="titleSwatches"></div>
+      <div class="row">
+        <label class="chip" id="titleCustomChip">
+          <span class="sw" id="titleCustomSw"></span>
+          <span>Custom</span>
+          <input type="color" id="titleCustom" value="#ffffff" hidden>
+        </label>
+      </div>
     </div>
 
     <div class="group">
@@ -150,7 +171,7 @@
 
     <div class="foot">
       <span>Local preview — nothing is uploaded.</span>
-      <span id="ver">create v5</span>
+      <span id="ver">create v6</span>
     </div>
   </div>
 
@@ -171,7 +192,6 @@
     const CARD_W = 3.4, CARD_H = CARD_W / 1.586, CARD_D = 0.055, RADIUS = 0.14;
     const CW = 1400, CH = Math.round(1400 / 1.586);
     const TEX_R = CW * (RADIUS / CARD_W);   // texture corner radius matches mesh silhouette
-    const HEADER = 0.11;
 
     const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
     const lerp = (a, b, t) => a + (b - a) * t;
@@ -179,9 +199,16 @@
     // ---- Editable state ----
     let img = null;
     let zoom = 1, panX = 0, panY = 0;
+    // Header bar (top): its own label text, height, font, and background treatment.
     let headerMode = 'color';          // 'color' | 'darken' | 'transparent'
     let headerColor = '#3a4036';
-    let title = 'Morning Focus';
+    let headerText = 'Morning Focus';
+    let headerHeight = 0.11;            // fraction of card height
+    let headerFont = 0.42;             // fraction of header height
+    // Main title (large, bottom-left): distinct text, size, and color.
+    let title = 'Focus';
+    let titleFont = 0.17;             // fraction of card height
+    let titleColor = '#ffffff';
 
     // ---- Offscreen canvases used as card-face textures ----
     const frontCanvas = document.createElement('canvas');
@@ -229,7 +256,7 @@
     }
 
     function drawHeader() {
-      const hh = CH * HEADER;
+      const hh = CH * headerHeight;
       let ink = '#f2f1ea', shadow = false;
       if (headerMode === 'color') {
         fctx.fillStyle = headerColor; fctx.fillRect(0, 0, CW, hh);
@@ -243,11 +270,24 @@
       if (headerMode !== 'transparent') {
         fctx.fillStyle = 'rgba(0,0,0,0.12)'; fctx.fillRect(0, hh - 2, CW, 2);
       }
+      if (!headerText) return;
       fctx.textAlign = 'left'; fctx.textBaseline = 'middle';
-      fctx.font = `500 ${Math.round(hh * 0.42)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
+      fctx.font = `500 ${Math.round(hh * headerFont)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
       if (shadow) { fctx.shadowColor = 'rgba(0,0,0,0.55)'; fctx.shadowBlur = 10; fctx.shadowOffsetY = 1; }
       fctx.fillStyle = ink;
-      fctx.fillText(title, CW * 0.045, hh * 0.56);
+      fctx.fillText(headerText, CW * 0.045, hh * 0.56);
+      fctx.shadowColor = 'transparent'; fctx.shadowBlur = 0; fctx.shadowOffsetY = 0;
+    }
+
+    // Main title: large, anchored bottom-left, with a soft shadow for legibility.
+    function drawMainTitle() {
+      if (!title) return;
+      const size = CH * titleFont;
+      fctx.textAlign = 'left'; fctx.textBaseline = 'alphabetic';
+      fctx.font = `700 ${Math.round(size)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
+      fctx.shadowColor = 'rgba(0,0,0,0.45)'; fctx.shadowBlur = size * 0.22; fctx.shadowOffsetY = size * 0.03;
+      fctx.fillStyle = titleColor;
+      fctx.fillText(title, CW * 0.05, CH * 0.93);
       fctx.shadowColor = 'transparent'; fctx.shadowBlur = 0; fctx.shadowOffsetY = 0;
     }
 
@@ -258,6 +298,7 @@
       fctx.clip();
       if (img) drawPhoto(); else drawPlaceholder();
       drawHeader();
+      drawMainTitle();
       fctx.restore();
       if (frontTex) frontTex.needsUpdate = true;
     }
@@ -285,7 +326,7 @@
       bctx.font = `400 ${Math.round(CH * 0.05)}px -apple-system, sans-serif`;
       bctx.fillText('tunetap.to', cx, CH * 0.90);
       // header bar
-      const hh = CH * HEADER;
+      const hh = CH * 0.11;   // back header is fixed (front height slider only affects the front)
       bctx.fillStyle = 'rgba(58,64,54,0.97)'; bctx.fillRect(0, 0, CW, hh);
       bctx.textAlign = 'left'; bctx.textBaseline = 'middle';
       bctx.fillStyle = '#f2f1ea';
@@ -569,7 +610,36 @@
     transBtn.addEventListener('click', () => { headerMode = 'transparent'; setActive(transBtn); compose(); });
     selectable.push(darkenBtn, transBtn);
 
+    document.getElementById('headerText').addEventListener('input', (e) => { headerText = e.target.value; compose(); });
+    document.getElementById('headerHeight').addEventListener('input', (e) => { headerHeight = parseFloat(e.target.value); compose(); });
+    document.getElementById('headerFont').addEventListener('input', (e) => { headerFont = parseFloat(e.target.value); compose(); });
+
+    // ---- Title controls (distinct from the header) ----
+    const TITLE_PRESETS = ['#ffffff', '#f2e9d0', '#12140f', '#1db954', '#e5b84a', '#c95b3b'];
+    const titleSwatchWrap = document.getElementById('titleSwatches');
+    const titleCustomChip = document.getElementById('titleCustomChip');
+    const titleCustomInput = document.getElementById('titleCustom');
+    const titleCustomSw = document.getElementById('titleCustomSw');
+    const titleSelectable = [];
+    function setTitleActive(el) { titleSelectable.forEach(s => s.classList.toggle('active', s === el)); }
+
+    TITLE_PRESETS.forEach((col, i) => {
+      const b = document.createElement('button');
+      b.className = 'swatch'; b.style.background = col; b.type = 'button';
+      b.addEventListener('click', () => { titleColor = col; setTitleActive(b); compose(); });
+      titleSwatchWrap.appendChild(b); titleSelectable.push(b);
+      if (i === 0) setTitleActive(b);
+    });
+    titleCustomSw.style.background = titleCustomInput.value;
+    titleCustomChip.addEventListener('click', () => titleCustomInput.click());
+    titleCustomInput.addEventListener('input', () => {
+      titleColor = titleCustomInput.value;
+      titleCustomSw.style.background = titleCustomInput.value; setTitleActive(titleCustomChip); compose();
+    });
+    titleSelectable.push(titleCustomChip);
+
     document.getElementById('title').addEventListener('input', (e) => { title = e.target.value; compose(); });
+    document.getElementById('titleFont').addEventListener('input', (e) => { titleFont = parseFloat(e.target.value); compose(); });
 
     document.getElementById('save').addEventListener('click', () => {
       const a = document.createElement('a');
