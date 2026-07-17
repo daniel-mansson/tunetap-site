@@ -69,7 +69,7 @@
     <button class="btn" id="flip"><span class="ico">⇄</span>Flip</button>
   </div>
 
-  <div class="hint" id="hint">v3</div>
+  <div class="hint" id="hint">v4</div>
 
   <script type="importmap">
   {
@@ -140,76 +140,111 @@
       return tex;
     }
 
-    const frontTex = makeTexture((ctx, W, H) => {
-      // base gradient
-      const g = ctx.createLinearGradient(0, 0, W, H);
-      g.addColorStop(0, '#14311f');
-      g.addColorStop(0.55, '#0d1c14');
-      g.addColorStop(1, '#070d0a');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      // accent glow
-      const glow = ctx.createRadialGradient(W * 0.16, H * 0.12, 10, W * 0.16, H * 0.12, W * 0.7);
-      glow.addColorStop(0, 'rgba(29,185,84,0.34)');
-      glow.addColorStop(1, 'rgba(29,185,84,0)');
-      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
-      // chip
-      const cx = W * 0.085, cy = H * 0.30, cw = W * 0.12, ch = cw * 0.74;
-      const cg = ctx.createLinearGradient(cx, cy, cx + cw, cy + ch);
-      cg.addColorStop(0, '#f4d27a'); cg.addColorStop(1, '#c99a3f');
-      ctx.fillStyle = cg; rr(ctx, cx, cy, cw, ch, 10); ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy + ch / 2); ctx.lineTo(cx + cw, cy + ch / 2);
-      ctx.moveTo(cx + cw / 2, cy); ctx.lineTo(cx + cw / 2, cy + ch);
-      ctx.stroke();
-      // waveform bars
-      const bars = 22, bx0 = W * 0.30, bx1 = W * 0.93, by = H * 0.52;
-      ctx.fillStyle = 'rgba(29,185,84,0.92)';
-      for (let i = 0; i < bars; i++) {
-        const t = i / (bars - 1);
-        const x = bx0 + (bx1 - bx0) * t;
-        const amp = (0.16 + 0.84 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6))) * H * 0.20;
-        const w = (bx1 - bx0) / bars * 0.5;
-        rr(ctx, x, by - amp, w, amp * 2, w / 2); ctx.fill();
+    // Editorial style: dark header bar + left-aligned title, full-bleed scene below.
+    const TITLE = 'Morning Focus';
+    const HEADER = 0.16;          // header height as fraction of card height
+    const HEADER_COLOR = 'rgba(58,64,54,0.97)';
+    const HEADER_INK = '#f2f1ea';
+
+    function drawHeader(ctx, W, H, title, right) {
+      const hh = H * HEADER;
+      ctx.fillStyle = HEADER_COLOR;
+      ctx.fillRect(0, 0, W, hh);
+      ctx.fillStyle = 'rgba(0,0,0,0.10)';         // hairline under the bar
+      ctx.fillRect(0, hh - 2, W, 2);
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = HEADER_INK;
+      ctx.font = `500 ${Math.round(hh * 0.42)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
+      ctx.fillText(title, W * 0.045, hh * 0.55);
+      if (right) {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(242,241,234,0.62)';
+        ctx.font = `500 ${Math.round(hh * 0.30)}px -apple-system, sans-serif`;
+        ctx.fillText(right, W * 0.955, hh * 0.55);
+        ctx.textAlign = 'left';
       }
-      // wordmark
-      ctx.textBaseline = 'alphabetic';
-      ctx.font = `700 ${Math.round(H * 0.135)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('Tune', W * 0.075, H * 0.86);
-      const tw = ctx.measureText('Tune').width;
-      ctx.fillStyle = '#1db954';
-      ctx.fillText('Tap', W * 0.075 + tw, H * 0.86);
-      // note glyph
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = `600 ${Math.round(H * 0.16)}px -apple-system, sans-serif`;
-      ctx.fillText('♪', W * 0.88, H * 0.24);
+    }
+
+    // Stylized misty layered hills, rendered procedurally (self-contained, no image deps).
+    const frontTex = makeTexture((ctx, W, H) => {
+      // hazy sky
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#e9e7d7');
+      sky.addColorStop(0.5, '#dedecc');
+      sky.addColorStop(1, '#c9cfba');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+      // warm morning glow, upper right
+      const glow = ctx.createRadialGradient(W * 0.8, H * 0.26, 10, W * 0.8, H * 0.26, W * 0.62);
+      glow.addColorStop(0, 'rgba(245,227,178,0.85)');
+      glow.addColorStop(1, 'rgba(245,227,178,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+      // layered ridges, back (hazy) -> front (dark green), fog hugging each ridge
+      const layers = [
+        { base: 0.40, amp: 0.045, phase: 0.5, color: '#b0bba4' },
+        { base: 0.50, amp: 0.060, phase: 2.1, color: '#8d9e80' },
+        { base: 0.61, amp: 0.070, phase: 3.6, color: '#6b8261' },
+        { base: 0.72, amp: 0.085, phase: 1.2, color: '#4d6945' },
+        { base: 0.83, amp: 0.100, phase: 4.4, color: '#33502b' },
+      ];
+      layers.forEach((L, idx) => {
+        const baseY = H * L.base, amp = H * L.amp, steps = 48;
+        ctx.beginPath();
+        ctx.moveTo(0, H); ctx.lineTo(0, baseY);
+        for (let i = 0; i <= steps; i++) {
+          const x = (i / steps) * W;
+          const y = baseY + Math.sin(i * 0.28 + L.phase) * amp + Math.sin(i * 0.11 + L.phase * 1.6) * amp * 0.5;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, H); ctx.closePath();
+        ctx.fillStyle = L.color; ctx.fill();
+
+        const fog = ctx.createLinearGradient(0, baseY - amp, 0, baseY + amp * 3);
+        fog.addColorStop(0, 'rgba(240,240,232,0)');
+        fog.addColorStop(0.5, `rgba(240,240,232,${0.34 - idx * 0.05})`);
+        fog.addColorStop(1, 'rgba(240,240,232,0)');
+        ctx.fillStyle = fog; ctx.fillRect(0, baseY - amp, W, amp * 4);
+      });
+
+      // cool shade lower-left for depth
+      const shade = ctx.createRadialGradient(W * 0.12, H * 1.0, 10, W * 0.12, H * 1.0, W * 0.7);
+      shade.addColorStop(0, 'rgba(18,34,18,0.30)');
+      shade.addColorStop(1, 'rgba(18,34,18,0)');
+      ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
+
+      drawHeader(ctx, W, H, TITLE);
     });
 
     const backTex = makeTexture((ctx, W, H) => {
+      // soft sage body
       const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, '#141821'); g.addColorStop(1, '#0a0d12');
+      g.addColorStop(0, '#d0d5c5'); g.addColorStop(1, '#a9b499');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      // magnetic stripe
-      ctx.fillStyle = '#05070a';
-      ctx.fillRect(0, H * 0.14, W, H * 0.20);
-      // signature strip
-      ctx.fillStyle = '#e9e6df';
-      rr(ctx, W * 0.06, H * 0.46, W * 0.64, H * 0.16, 8); ctx.fill();
-      ctx.fillStyle = 'rgba(0,0,0,0.28)';
-      ctx.font = `400 ${Math.round(H * 0.075)}px -apple-system, sans-serif`;
-      ctx.fillText('tap to play', W * 0.09, H * 0.575);
-      // NFC hint
-      ctx.strokeStyle = 'rgba(29,185,84,0.8)'; ctx.lineWidth = 4;
+
+      // NFC arcs, centered
+      const cx = W * 0.5, cy = H * 0.50;
+      ctx.strokeStyle = 'rgba(51,80,43,0.7)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
       for (let i = 1; i <= 3; i++) {
         ctx.beginPath();
-        ctx.arc(W * 0.86, H * 0.55, i * 22, -Math.PI * 0.42, Math.PI * 0.42);
+        ctx.arc(cx - i * 5, cy, i * W * 0.05, -Math.PI * 0.4, Math.PI * 0.4);
         ctx.stroke();
       }
-      // wordmark
-      ctx.font = `700 ${Math.round(H * 0.09)}px -apple-system, sans-serif`;
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillText('TuneTap', W * 0.06, H * 0.84);
+      ctx.fillStyle = 'rgba(51,80,43,0.7)';
+      ctx.beginPath(); ctx.arc(cx - W * 0.02, cy, 8, 0, Math.PI * 2); ctx.fill();
+
+      // caption + footer
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = 'rgba(38,54,34,0.85)';
+      ctx.font = `600 ${Math.round(H * 0.075)}px -apple-system, sans-serif`;
+      ctx.fillText('Tap to play', cx, H * 0.80);
+      ctx.fillStyle = 'rgba(38,54,34,0.5)';
+      ctx.font = `400 ${Math.round(H * 0.05)}px -apple-system, sans-serif`;
+      ctx.fillText('tunetap.to', cx, H * 0.90);
+      ctx.textAlign = 'left';
+
+      drawHeader(ctx, W, H, 'TuneTap', 'NFC');
     });
 
     // ---- Build the card ----
@@ -241,8 +276,8 @@
     const body = new THREE.Mesh(
       bodyGeo,
       new THREE.MeshPhysicalMaterial({
-        color: 0x0b1310, roughness: 0.34, metalness: 0.0,
-        clearcoat: 0.8, clearcoatRoughness: 0.22,
+        color: 0xe8e5db, roughness: 0.4, metalness: 0.0,
+        clearcoat: 0.7, clearcoatRoughness: 0.25,
       })
     );
     card.add(body);
