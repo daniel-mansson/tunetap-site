@@ -150,7 +150,7 @@
 
     <div class="foot">
       <span>Local preview — nothing is uploaded.</span>
-      <span id="ver">create v4</span>
+      <span id="ver">create v5</span>
     </div>
   </div>
 
@@ -300,8 +300,7 @@
     const stage = document.querySelector('.stage');
     const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, alpha: true });
     renderer.setClearColor(0x000000, 0);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMapping = THREE.NoToneMapping;   // neutral, accurate face colors
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const scene = new THREE.Scene();
@@ -345,10 +344,9 @@
     })));
 
     function facePlane(tex, front) {
-      const mat = new THREE.MeshPhysicalMaterial({
-        map: tex, roughness: 0.42, metalness: 0.0, clearcoat: 0.5, clearcoatRoughness: 0.3,
-        transparent: true, alphaTest: 0.5,
-      });
+      // Unlit so the photo/header colors render exactly as composed — no specular
+      // glare or environment veil washing them out when viewed head-on.
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.5 });
       const m = new THREE.Mesh(new THREE.PlaneGeometry(CARD_W, CARD_H), mat);
       m.position.z = front ? (CARD_D / 2 + 0.004) : -(CARD_D / 2 + 0.004);
       if (!front) m.rotation.y = Math.PI;
@@ -397,8 +395,11 @@
     });
 
     function tick() {
+      const t = performance.now() * 0.001;
       curFlip += (targetFlip - curFlip) * 0.12;
-      card.rotation.y = curFlip;
+      card.rotation.y = curFlip + Math.sin(t * 0.5) * 0.06;   // gentle idle sway
+      card.rotation.x = Math.sin(t * 0.72) * 0.045;
+      card.position.y = Math.sin(t * 0.9) * 0.015;
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
     }
