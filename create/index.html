@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Create · TuneTap</title>
+  <meta name="description" content="Local card creation tool.">
+  <meta name="theme-color" content="#eef0f4">
+  <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style>
+    :root {
+      --ink: #1a1722; --muted: #7a7385;
+      --glass: rgba(255,255,255,0.66);
+      --line: rgba(26,23,34,0.10);
+      --line-soft: rgba(26,23,34,0.06);
+      --panel: #ffffff;
+      --accent: #1db954;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100dvh; color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background:
+        radial-gradient(130% 120% at 50% -10%, #ffffff 0%, #eef0f4 42%, #dcdfe6 78%, #cdd1da 100%);
+      background-attachment: fixed;
+      display: flex; flex-direction: column; align-items: center;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+      gap: 18px;
+    }
+
+    /* ---- Preview stage ---- */
+    .stage {
+      width: 100%; display: flex; justify-content: center;
+      padding: 14px 0 6px;
+    }
+    #card {
+      width: min(90vw, 460px); height: auto; display: block;
+      border-radius: 18px;
+      filter: drop-shadow(0 24px 34px rgba(26,23,34,0.28));
+      touch-action: none; cursor: grab;
+    }
+    #card:active { cursor: grabbing; }
+
+    /* ---- Controls ---- */
+    .panel {
+      width: 100%; max-width: 460px;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 20px; padding: 16px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 14px 30px -20px rgba(26,23,34,0.4);
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .group { display: flex; flex-direction: column; gap: 10px; }
+    .lbl {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .mini { font-size: 13px; color: var(--muted); min-width: 38px; }
+
+    .btn {
+      appearance: none; border: 1px solid var(--line); background: #fff;
+      color: var(--ink); font: inherit; font-weight: 600; font-size: 14px;
+      padding: 10px 16px; border-radius: 12px; cursor: pointer; flex: 1;
+      transition: transform .1s ease, background .2s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary { background: var(--ink); color: #fff; border-color: transparent; }
+
+    input[type=range] { flex: 1; accent-color: var(--accent); height: 26px; }
+
+    .swatches { gap: 10px; }
+    .swatch {
+      width: 34px; height: 34px; border-radius: 10px; cursor: pointer;
+      border: 2px solid transparent; box-shadow: 0 0 0 1px var(--line) inset;
+      padding: 0; appearance: none;
+    }
+    .swatch.active { border-color: var(--ink); }
+
+    .chip {
+      appearance: none; border: 1px solid var(--line); background: #fff;
+      color: var(--ink); font: inherit; font-weight: 600; font-size: 13px;
+      padding: 9px 12px; border-radius: 11px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 7px;
+    }
+    .chip.active { border-color: var(--ink); background: #f3f2f5; }
+    .chip input[type=color] {
+      width: 20px; height: 20px; border: none; padding: 0; background: none;
+      border-radius: 5px; cursor: pointer;
+    }
+    .chip .sw {
+      width: 16px; height: 16px; border-radius: 5px; box-shadow: 0 0 0 1px var(--line) inset;
+    }
+
+    .text {
+      width: 100%; font: inherit; font-size: 15px; color: var(--ink);
+      padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px;
+      background: #fff;
+    }
+    .text:focus { outline: none; border-color: var(--ink); }
+
+    .foot {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; color: var(--muted); padding-top: 2px;
+    }
+    .foot a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <canvas id="card"></canvas>
+  </div>
+
+  <div class="panel">
+    <div class="group">
+      <span class="lbl">Photo</span>
+      <div class="row">
+        <button class="btn primary" id="pick">Choose photo</button>
+        <input type="file" id="file" accept="image/*" hidden>
+      </div>
+      <div class="row">
+        <span class="mini">Zoom</span>
+        <input type="range" id="zoom" min="1" max="4" step="0.01" value="1">
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="lbl">Header</span>
+      <div class="row swatches" id="swatches"></div>
+      <div class="row">
+        <label class="chip" id="customChip">
+          <span class="sw" id="customSw"></span>
+          <span>Custom</span>
+          <input type="color" id="custom" value="#3a4036" hidden>
+        </label>
+        <button class="chip" id="darken">Darken</button>
+        <button class="chip" id="transparent">Transparent</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="lbl">Title</span>
+      <input type="text" id="title" class="text" value="Morning Focus" maxlength="28" placeholder="Card title">
+    </div>
+
+    <div class="group">
+      <button class="btn" id="save">Save PNG</button>
+    </div>
+
+    <div class="foot">
+      <span>Local preview — nothing is uploaded.</span>
+      <span id="ver">create v1</span>
+    </div>
+  </div>
+
+  <script>
+    // ---- Card canvas (credit-card ratio) ----
+    const CW = 1400, CH = Math.round(1400 / 1.586), RAD = CW * 0.04, HEADER = 0.11;
+    const canvas = document.getElementById('card');
+    canvas.width = CW; canvas.height = CH;
+    const ctx = canvas.getContext('2d');
+
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+    // ---- State ----
+    let img = null;
+    let zoom = 1, panX = 0, panY = 0;
+    let headerMode = 'color';          // 'color' | 'darken' | 'transparent'
+    let headerColor = '#3a4036';
+    let title = 'Morning Focus';
+
+    // ---- Helpers ----
+    function roundRectPath(c, x, y, w, h, r) {
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.arcTo(x + w, y, x + w, y + h, r);
+      c.arcTo(x + w, y + h, x, y + h, r);
+      c.arcTo(x, y + h, x, y, r);
+      c.arcTo(x, y, x + w, y, r);
+      c.closePath();
+    }
+    function contrastInk(hex) {
+      const n = hex.replace('#', '');
+      const r = parseInt(n.substr(0, 2), 16), g = parseInt(n.substr(2, 2), 16), b = parseInt(n.substr(4, 2), 16);
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return lum > 0.62 ? '#20221c' : '#f2f1ea';
+    }
+
+    function drawPlaceholder() {
+      const g = ctx.createLinearGradient(0, 0, CW, CH);
+      g.addColorStop(0, '#e7e9ee'); g.addColorStop(1, '#d3d7df');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
+      ctx.fillStyle = 'rgba(26,23,34,0.32)';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `500 ${Math.round(CH * 0.06)}px -apple-system, "Segoe UI", sans-serif`;
+      ctx.fillText('Choose a photo to begin', CW / 2, CH * 0.56);
+      ctx.font = `${Math.round(CH * 0.13)}px -apple-system, sans-serif`;
+      ctx.fillText('▦', CW / 2, CH * 0.42);
+    }
+
+    function drawPhoto() {
+      const base = Math.max(CW / img.width, CH / img.height);
+      const s = base * zoom;
+      const w = img.width * s, h = img.height * s;
+      const maxX = Math.max(0, (w - CW) / 2), maxY = Math.max(0, (h - CH) / 2);
+      panX = clamp(panX, -maxX, maxX);
+      panY = clamp(panY, -maxY, maxY);
+      ctx.drawImage(img, (CW - w) / 2 + panX, (CH - h) / 2 + panY, w, h);
+    }
+
+    function drawHeader() {
+      const hh = CH * HEADER;
+      let ink = '#f2f1ea', shadow = false;
+      if (headerMode === 'color') {
+        ctx.fillStyle = headerColor; ctx.fillRect(0, 0, CW, hh);
+        ink = contrastInk(headerColor);
+      } else if (headerMode === 'darken') {
+        ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.fillRect(0, 0, CW, hh);
+        shadow = true;
+      } else {
+        shadow = true; // transparent: photo shows through, text-only
+      }
+      if (headerMode !== 'transparent') {
+        ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(0, hh - 2, CW, 2);
+      }
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.font = `500 ${Math.round(hh * 0.42)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
+      if (shadow) { ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 1; }
+      ctx.fillStyle = ink;
+      ctx.fillText(title, CW * 0.045, hh * 0.56);
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, CW, CH);
+      ctx.save();
+      roundRectPath(ctx, 0, 0, CW, CH, RAD);
+      ctx.clip();
+      if (img) drawPhoto(); else drawPlaceholder();
+      drawHeader();
+      ctx.restore();
+    }
+
+    // ---- Photo loading ----
+    const fileInput = document.getElementById('file');
+    document.getElementById('pick').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      const im = new Image();
+      im.onload = () => {
+        img = im; zoom = 1; panX = 0; panY = 0;
+        document.getElementById('zoom').value = 1;
+        draw(); URL.revokeObjectURL(url);
+      };
+      im.src = url;
+    });
+
+    // ---- Pan / zoom interaction ----
+    const zoomSlider = document.getElementById('zoom');
+    zoomSlider.addEventListener('input', () => { zoom = parseFloat(zoomSlider.value); draw(); });
+
+    const pts = new Map();
+    let lastDist = 0, lastMid = null;
+    const scaleFactor = () => CW / canvas.getBoundingClientRect().width;
+
+    canvas.addEventListener('pointerdown', (e) => {
+      canvas.setPointerCapture(e.pointerId);
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!pts.has(e.pointerId) || !img) { if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); return; }
+      const prev = pts.get(e.pointerId);
+      const f = scaleFactor();
+      if (pts.size === 1) {
+        panX += (e.clientX - prev.x) * f;
+        panY += (e.clientY - prev.y) * f;
+        draw();
+      }
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        const a = [...pts.values()];
+        const dist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+        const mid = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
+        if (lastDist) {
+          zoom = clamp(zoom * (dist / lastDist), 1, 4);
+          panX += (mid.x - lastMid.x) * f;
+          panY += (mid.y - lastMid.y) * f;
+          zoomSlider.value = zoom; draw();
+        }
+        lastDist = dist; lastMid = mid;
+      }
+    });
+    function endPointer(e) { pts.delete(e.pointerId); if (pts.size < 2) { lastDist = 0; lastMid = null; } }
+    canvas.addEventListener('pointerup', endPointer);
+    canvas.addEventListener('pointercancel', endPointer);
+    canvas.addEventListener('wheel', (e) => {
+      if (!img) return;
+      e.preventDefault();
+      zoom = clamp(zoom * (e.deltaY < 0 ? 1.08 : 0.925), 1, 4);
+      zoomSlider.value = zoom; draw();
+    }, { passive: false });
+
+    // ---- Header controls ----
+    const PRESETS = ['#3a4036', '#2b3a2f', '#22303c', '#3a2f4a', '#5c4433', '#7a3b3b', '#cbd0bd', '#f2f1ea'];
+    const swatchWrap = document.getElementById('swatches');
+    const customChip = document.getElementById('customChip');
+    const customInput = document.getElementById('custom');
+    const customSw = document.getElementById('customSw');
+    const darkenBtn = document.getElementById('darken');
+    const transBtn = document.getElementById('transparent');
+    const selectable = [];
+
+    function setActive(el) { selectable.forEach(s => s.classList.toggle('active', s === el)); }
+
+    PRESETS.forEach((col, i) => {
+      const b = document.createElement('button');
+      b.className = 'swatch'; b.style.background = col; b.type = 'button';
+      b.addEventListener('click', () => {
+        headerMode = 'color'; headerColor = col; setActive(b); draw();
+      });
+      swatchWrap.appendChild(b);
+      selectable.push(b);
+      if (i === 0) setActive(b);
+    });
+
+    customSw.style.background = customInput.value;
+    customChip.addEventListener('click', () => customInput.click());
+    customInput.addEventListener('input', () => {
+      headerMode = 'color'; headerColor = customInput.value;
+      customSw.style.background = customInput.value;
+      setActive(customChip); draw();
+    });
+    selectable.push(customChip);
+
+    darkenBtn.addEventListener('click', () => { headerMode = 'darken'; setActive(darkenBtn); draw(); });
+    transBtn.addEventListener('click', () => { headerMode = 'transparent'; setActive(transBtn); draw(); });
+    selectable.push(darkenBtn, transBtn);
+
+    // ---- Title ----
+    document.getElementById('title').addEventListener('input', (e) => {
+      title = e.target.value; draw();
+    });
+
+    // ---- Save (local) ----
+    document.getElementById('save').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.download = 'tunetap-card.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    });
+
+    draw();
+  </script>
+</body>
+</html>
