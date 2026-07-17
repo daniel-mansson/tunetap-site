@@ -157,7 +157,7 @@
 
     <div class="foot">
       <span>Local preview — nothing is uploaded.</span>
-      <span id="ver">create v2</span>
+      <span id="ver">create v3</span>
     </div>
   </div>
 
@@ -286,14 +286,56 @@
       });
     }
 
+    // Native decode (createImageBitmap, then <img>); returns a draw source or null.
+    async function tryNative(blob) {
+      if (window.createImageBitmap) {
+        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' }).catch(() => null);
+        if (bmp) return bmp;
+      }
+      return await loadViaImg(blob).catch(() => null);
+    }
+
+    function looksHeic(file) {
+      const t = (file.type || '').toLowerCase();
+      const n = (file.name || '').toLowerCase();
+      return t.includes('heic') || t.includes('heif') || /\.(heic|heif)$/.test(n);
+    }
+
+    // Lazy-load the HEIC decoder (libheif via heic2any) only when needed.
+    let heicLibPromise = null;
+    function loadHeicLib() {
+      if (heicLibPromise) return heicLibPromise;
+      heicLibPromise = new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+        s.onload = res;
+        s.onerror = () => { heicLibPromise = null; rej(new Error('heic lib failed')); };
+        document.head.appendChild(s);
+      });
+      return heicLibPromise;
+    }
+    async function heicToJpeg(file) {
+      await loadHeicLib();
+      const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+      return Array.isArray(out) ? out[0] : out;
+    }
+
+    async function decodeToSource(file) {
+      let src = await tryNative(file);                 // fast path (incl. browsers with native HEIF)
+      if (src) return src;
+      if (looksHeic(file)) {                            // convert HEIC -> JPEG, then decode
+        setStatus('Converting HEIC…', 'ok');
+        const jpeg = await heicToJpeg(file);
+        src = await tryNative(jpeg);
+        if (src) return src;
+      }
+      throw new Error('unsupported');
+    }
+
     async function loadFile(file) {
       setStatus('Loading…', 'ok');
       try {
-        let source = null;
-        if (window.createImageBitmap) {
-          source = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null);
-        }
-        if (!source) source = await loadViaImg(file);   // fallback path
+        const source = await decodeToSource(file);
         img = downscale(source);
         if (source.close) source.close();
         zoom = 1; panX = 0; panY = 0;
