@@ -201,11 +201,15 @@
   </div>
 
 <script>
-  // NOTE: This form is front-end only. To actually collect signups, wire the
-  // fetch() call below to an email service endpoint — e.g. a Mailchimp
-  // audience signup URL, a Formspree/ConvertKit form endpoint, or a Google
-  // Sheets webhook. Until that's connected, this only shows a local
-  // confirmation message and does not store the email anywhere.
+  // Submits to the "Waiting list- The Box" Google Form, which is linked to
+  // a Google Sheet — every signup lands there as a new row. We POST with
+  // mode:'no-cors' (Google Forms doesn't send CORS headers), so the
+  // response is opaque and we can't confirm success/failure from JS; the
+  // thank-you message is shown optimistically. Check the linked Sheet to
+  // verify entries are coming through.
+  const GOOGLE_FORM_ACTION = 'https://docs.google.com/forms/d/e/1FAIpQLSfdw6MGKAUliz3hL28CPsQzUn-00bGprBM0TNzIESF4AhgkZw/formResponse';
+  const GOOGLE_FORM_EMAIL_FIELD = 'entry.885924641';
+
   function handleWaitlistSubmit(e){
     e.preventDefault();
     const form = e.target;
@@ -213,12 +217,19 @@
     const msg = document.getElementById('form-msg');
     if (!email) return;
 
-    // --- Replace this block with a real submission, e.g.: ---
-    // fetch('YOUR_ENDPOINT_URL', {
-    //   method: 'POST',
-    //   headers: {'Content-Type':'application/json'},
-    //   body: JSON.stringify({ email })
-    // });
+    const body = new URLSearchParams();
+    body.set(GOOGLE_FORM_EMAIL_FIELD, email);
+
+    fetch(GOOGLE_FORM_ACTION, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    }).catch(() => {
+      // Network-level failure (e.g. offline). Opaque no-cors responses
+      // never reach here even on Google-side errors, so this only
+      // covers the client actually being unable to reach the network.
+    });
 
     msg.textContent = "Thank you — you're on the list.";
     msg.classList.add('success');
