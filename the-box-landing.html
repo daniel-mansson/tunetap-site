@@ -3,200 +3,202 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Box — A Nordic, screen-free story player</title>
+<title>The Box — A screen-free audio player | Coming soon</title>
+<meta name="description" content="The Box is a sage-green, screen-free audio player with illustrated cards. Join the waitlist to be notified when early units are available.">
+<meta property="og:title" content="The Box — A screen-free audio player">
+<meta property="og:description" content="A sage-green, screen-free audio player with illustrated cards. Join the waitlist for launch.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Fira+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #F3EEE4;
-    --paper: #FBF8F1;
-    --sage: #7C8B6E;
-    --sage-dark: #5C6A50;
-    --ink: #2B2620;
-    --ink-soft: #5C5548;
-    --line: #DED5C1;
-    --terracotta: #B5764F;
+    --radius: 0.25rem;
+    --font-display: "DM Serif Display", Georgia, serif;
+    --font-sans: "Fira Sans", system-ui, sans-serif;
+    --background: oklch(0.968 0.012 95);
+    --foreground: oklch(0.28 0.018 140);
+    --primary: oklch(0.55 0.045 145);
+    --primary-foreground: oklch(0.98 0.01 95);
+    --muted-foreground: oklch(0.52 0.018 130);
+    --border: oklch(0.88 0.016 110);
   }
   *{ box-sizing: border-box; }
-  html{ scroll-behavior: smooth; }
   body{
-    margin:0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    line-height: 1.6;
-  }
-  h1, h2, h3, .display{
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 500;
-    color: var(--ink);
-    letter-spacing: -0.01em;
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    min-height: 100vh;
   }
   a{ color: inherit; }
-  .wrap{ max-width: 1160px; margin: 0 auto; padding: 0 32px; }
-
-  /* Header */
-  header{
-    position: sticky; top:0; z-index: 20;
-    background: rgba(243,238,228,0.88);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--line);
+  .container{
+    max-width: 72rem; /* 1152px */
+    margin: 0 auto;
+    padding: 40px 24px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
-  .nav{
-    display:flex; align-items:center; justify-content:space-between;
-    padding-top: 18px; padding-bottom: 18px;
+  @media (min-width: 768px){
+    .container{ padding: 40px 40px; }
+  }
+
+  header{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
   }
   .brand{
-    font-family:'Fraunces', serif; font-size: 20px; font-weight:600;
-    display:flex; align-items:center; gap:10px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    letter-spacing: -0.01em;
   }
-  .brand .dot{ width:9px; height:9px; border-radius:50%; background: var(--sage); display:inline-block; }
-  .nav-cta{
-    background: var(--ink); color: var(--paper);
-    border:none; padding: 11px 22px; border-radius: 100px;
-    font-family:'Inter',sans-serif; font-size:14px; font-weight:600;
-    cursor:pointer; transition: transform .15s ease, background .15s ease;
-  }
-  .nav-cta:hover{ background: var(--sage-dark); transform: translateY(-1px); }
-
-  /* Hero */
-  .hero{ padding: 88px 0 40px; }
-  .hero-grid{
-    display:grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items:center;
-  }
-  .hero-solo{
-    display:flex; flex-direction:column; align-items:center; text-align:center;
-  }
-  .hero-solo .hero-img-wrap{ max-width: 640px; width:100%; }
   .eyebrow{
-    display:inline-flex; align-items:center; gap:8px;
-    font-size:13px; letter-spacing:.08em; text-transform:uppercase;
-    color: var(--sage-dark); font-weight:600; margin-bottom:22px;
-  }
-  .hero-solo .eyebrow{ justify-content:center; }
-  .eyebrow::before, .eyebrow::after{ content:""; width:20px; height:1px; background:var(--sage-dark); }
-  .hero h1{
-    font-size: clamp(38px, 4.6vw, 58px);
-    line-height: 1.06;
-    margin: 0 0 22px;
-  }
-  .hero p.sub{
-    font-size: 18px; color: var(--ink-soft); max-width: 480px; margin: 0 0 34px;
-  }
-  .hero-img-wrap{
-    border-radius: 22px; overflow:hidden;
-    box-shadow: 0 30px 60px -20px rgba(43,38,32,0.28);
-    border: 1px solid var(--line);
-  }
-  .hero-img-wrap img{ display:block; width:100%; height:auto; }
-
-  /* Waitlist form */
-  .waitlist-form{
-    display:flex; gap:10px; max-width: 460px; margin-bottom: 14px;
-  }
-  .waitlist-form input[type="email"]{
-    flex:1; padding: 15px 18px; border-radius: 100px;
-    border: 1px solid var(--line); background: var(--paper);
-    font-family:'Inter',sans-serif; font-size:15px; color: var(--ink);
-    outline:none; transition: border-color .15s ease;
-  }
-  .waitlist-form input[type="email"]:focus{ border-color: var(--sage); }
-  .waitlist-form button{
-    background: var(--sage-dark); color:#fff; border:none;
-    padding: 0 26px; border-radius: 100px; font-family:'Inter',sans-serif;
-    font-size:15px; font-weight:600; cursor:pointer; white-space:nowrap;
-    transition: background .15s ease, transform .15s ease;
-  }
-  .waitlist-form button:hover{ background:#4c5841; transform: translateY(-1px); }
-  .micro{ font-size:13px; color: var(--ink-soft); }
-  .form-msg{ font-size:14px; margin-top:10px; min-height: 20px; }
-  .form-msg.success{ color: var(--sage-dark); font-weight:600; }
-
-  @media (max-width: 720px){
-    .waitlist-form{ flex-direction:column; }
-    .waitlist-form button{ padding:14px; }
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: var(--muted-foreground);
   }
 
-  /* Value props */
-  .values{ padding: 96px 0; border-top:1px solid var(--line); }
-  .section-head{ max-width: 560px; margin-bottom: 56px; }
-  .section-head .eyebrow{ margin-bottom: 16px; }
-  .section-head h2{ font-size: clamp(28px, 3vw, 36px); margin:0 0 14px; }
-  .section-head p{ color: var(--ink-soft); font-size:16px; margin:0; }
-
-  .value-grid{
-    display:grid; grid-template-columns: repeat(3, 1fr); gap: 36px;
+  .hero{
+    flex: 1;
+    display: grid;
+    gap: 48px;
+    align-items: center;
+    padding: 64px 0;
   }
-  .value-card{
-    background: var(--paper); border:1px solid var(--line); border-radius:18px;
-    padding: 32px 28px;
-  }
-  .value-card .num{
-    font-family:'Fraunces', serif; font-size:14px; color: var(--terracotta);
-    font-weight:600; margin-bottom:18px;
-  }
-  .value-card h3{ font-size:20px; margin: 0 0 10px; }
-  .value-card p{ font-size:15px; color: var(--ink-soft); margin:0; }
-
-  @media (max-width: 860px){
-    .hero-grid{ grid-template-columns:1fr; }
-    .hero{ padding-top:56px; }
-    .value-grid{ grid-template-columns:1fr; }
+  @media (min-width: 768px){
+    .hero{ grid-template-columns: 1fr 1fr; gap: 64px; padding: 96px 0; }
   }
 
-  /* Final CTA */
-  .final-cta{
-    background: var(--sage-dark); color:#fff; border-radius: 28px;
-    margin: 0 0 96px; padding: 72px 48px; text-align:center;
+  .copy{ order: 2; }
+  .art{ order: 1; }
+  @media (min-width: 768px){
+    .copy{ order: 1; }
+    .art{ order: 2; }
   }
-  .final-cta h2{ color:#fff; font-size: clamp(28px,3.4vw,40px); margin:0 0 16px; }
-  .final-cta p{ color: #E4E6DC; font-size:16px; margin: 0 auto 34px; max-width:480px; }
-  .final-cta .waitlist-form{ margin: 0 auto 14px; }
-  .final-cta .waitlist-form input[type="email"]{ border:none; }
-  .final-cta .waitlist-form button{ background:#fff; color: var(--sage-dark); }
-  .final-cta .waitlist-form button:hover{ background:#F0EEE4; }
-  .final-cta .micro{ color:#CFD3C4; }
+
+  h1{
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  @media (min-width: 768px){ h1{ font-size: 60px; } }
+
+  .sub{
+    margin: 24px 0 0;
+    max-width: 28rem;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+  }
+
+  form{
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 28rem;
+  }
+  @media (min-width: 640px){ form{ flex-direction: row; } }
+
+  form input[type="email"]{
+    flex: 1;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    padding: 12px 4px;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: var(--foreground);
+    outline: none;
+    transition: border-color .15s ease;
+    border-radius: 0;
+  }
+  form input[type="email"]::placeholder{ color: color-mix(in oklch, var(--muted-foreground) 70%, transparent); }
+  form input[type="email"]:focus{ border-color: var(--primary); }
+
+  form button{
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    padding: 12px 28px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: opacity .15s ease;
+  }
+  form button:hover{ opacity: 0.9; }
+
+  .form-msg{
+    margin: 16px 0 0;
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  .form-msg.success{ color: var(--foreground); }
+
+  .art img{
+    width: 100%;
+    display: block;
+    border-radius: var(--radius);
+    object-fit: cover;
+    box-shadow: 0 24px 60px -30px rgba(60,70,50,0.55);
+  }
 
   footer{
-    border-top:1px solid var(--line); padding: 32px 0 48px;
-    display:flex; justify-content:space-between; align-items:center;
-    font-size:13px; color: var(--ink-soft);
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    font-size: 12px;
+    color: var(--muted-foreground);
   }
-  footer .brand{ font-size:15px; }
+  footer a{
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
 </style>
 </head>
 <body>
 
-  <header>
-    <div class="wrap nav">
-      <div class="brand">The Box</div>
-      <button class="nav-cta" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Join the waitlist</button>
-    </div>
-  </header>
+  <div class="container">
+    <header>
+      <span class="brand">The Box</span>
+      <span class="eyebrow">Coming soon</span>
+    </header>
 
-  <section class="hero">
-    <div class="wrap hero-solo">
-      <div class="eyebrow">Coming soon</div>
-      <div class="hero-img-wrap">
-        <img src="assets/hero-product.png" alt="The Box, a sage-green screen-free story player, beside a tray of illustrated story cards including Madicken, Ronja Rövardotter and Bröderna Lejonhjärta">
+    <section class="hero">
+      <div class="copy">
+        <h1>Join the waitlist</h1>
+        <p class="sub">We'll notify you the moment early units are available to order.</p>
+
+        <form onsubmit="handleWaitlistSubmit(event)">
+          <label for="email" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">Email address</label>
+          <input id="email" type="email" required placeholder="your@email.com" autocomplete="email">
+          <button type="submit">Join the waitlist</button>
+        </form>
+
+        <p class="form-msg" id="form-msg" aria-live="polite">One email, at launch. Nothing before that.</p>
       </div>
-    </div>
-  </section>
 
-  <section class="wrap" id="waitlist">
-    <div class="final-cta">
-      <h2>Be first to know when it launches.</h2>
-      <p>Join the waitlist and we'll notify you the moment early units are available to order.</p>
-      <form class="waitlist-form" onsubmit="handleWaitlistSubmit(event, 'final-msg')">
-        <input type="email" required placeholder="your@email.com" aria-label="Email address">
-        <button type="submit">Notify me</button>
-      </form>
-      <div class="form-msg" id="final-msg"></div>
-      <p class="micro">One email, at launch. Nothing before that.</p>
-    </div>
-    <p class="micro" style="text-align:center; margin: 24px 0 48px;">For questions or partnerships, contact: <a href="mailto:hello@tunetap.to">hello@tunetap.to</a></p>
-  </section>
+      <div class="art">
+        <img src="assets/hero-product.png" alt="The Box, a sage-green screen-free audio player, beside a tray of illustrated cards featuring Madicken, Ronja Rövardotter and Bröderna Lejonhjärta" loading="eager">
+      </div>
+    </section>
+
+    <footer>
+      For questions or partnerships, contact: <a href="mailto:hello@tunetap.to">hello@tunetap.to</a>
+    </footer>
+  </div>
 
 <script>
   // NOTE: This form is front-end only. To actually collect signups, wire the
@@ -204,11 +206,12 @@
   // audience signup URL, a Formspree/ConvertKit form endpoint, or a Google
   // Sheets webhook. Until that's connected, this only shows a local
   // confirmation message and does not store the email anywhere.
-  function handleWaitlistSubmit(e, msgId){
+  function handleWaitlistSubmit(e){
     e.preventDefault();
     const form = e.target;
-    const email = form.querySelector('input[type="email"]').value;
-    const msg = document.getElementById(msgId);
+    const email = form.querySelector('input[type="email"]').value.trim();
+    const msg = document.getElementById('form-msg');
+    if (!email) return;
 
     // --- Replace this block with a real submission, e.g.: ---
     // fetch('YOUR_ENDPOINT_URL', {
@@ -217,7 +220,7 @@
     //   body: JSON.stringify({ email })
     // });
 
-    msg.textContent = "You're on the list — we'll email " + email + " at launch.";
+    msg.textContent = "Thank you — you're on the list.";
     msg.classList.add('success');
     form.reset();
   }
