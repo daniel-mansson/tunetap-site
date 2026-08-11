@@ -45,7 +45,7 @@
   }
   .nav{
     display:flex; align-items:center; justify-content:space-between;
-    padding: 18px 0;
+    padding-top: 18px; padding-bottom: 18px;
   }
   .brand{
     font-family:'Fraunces', serif; font-size: 20px; font-weight:600;
@@ -75,7 +75,7 @@
     color: var(--sage-dark); font-weight:600; margin-bottom:22px;
   }
   .hero-solo .eyebrow{ justify-content:center; }
-  .eyebrow::before{ content:""; width:20px; height:1px; background:var(--sage-dark); }
+  .eyebrow::before, .eyebrow::after{ content:""; width:20px; height:1px; background:var(--sage-dark); }
   .hero h1{
     font-size: clamp(38px, 4.6vw, 58px);
     line-height: 1.06;
@@ -170,7 +170,7 @@
 
   <header>
     <div class="wrap nav">
-      <div class="brand"><span class="dot"></span>The Box</div>
+      <div class="brand">The Box</div>
       <button class="nav-cta" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Join the waitlist</button>
     </div>
   </header>
@@ -195,7 +195,7 @@
       <div class="form-msg" id="final-msg"></div>
       <p class="micro">One email, at launch. Nothing before that.</p>
     </div>
-    <p class="micro" style="text-align:center; margin: 24px 0 48px;">For questions or partnerships, contact: <a href="mailto:Hello@tunetap.to">Hello@tunetap.to</a></p>
+    <p class="micro" style="text-align:center; margin: 24px 0 48px;">For questions or partnerships, contact: <a href="mailto:hello@tunetap.to">hello@tunetap.to</a></p>
   </section>
 
 <script>
