@@ -24,9 +24,10 @@
         radial-gradient(90% 55% at 50% -8%, rgba(29,185,84,0.10), transparent 62%),
         linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
       background-attachment: fixed;
-      display: flex; justify-content: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
       padding: max(40px, env(safe-area-inset-top)) 22px max(36px, env(safe-area-inset-bottom));
     }
+    #box-landing-frame { margin: -40px -22px 26px; width: calc(100% + 44px); max-width: none; }
     main { width: 100%; max-width: 420px; text-align: center; }
 
     .brand {
@@ -121,57 +122,16 @@
   </style>
 </head>
 <body>
-  <main>
-    <span class="brand"><span class="dot">🎵</span><span class="wm">Tune<span class="tap">Tap</span></span></span>
-
-    <div class="stage" aria-hidden="true">
-      <div class="pcard back"></div>
-      <div class="pcard front">
-        <div class="row">
-          <span class="name">Tune<span class="tap">Tap</span></span>
-          <span class="nfc">◍ NFC</span>
-        </div>
-        <div class="wave">
-          <i style="height:40%"></i><i style="height:70%"></i><i style="height:100%"></i><i style="height:55%"></i>
-          <i style="height:85%"></i><i style="height:35%"></i><i style="height:65%"></i><i style="height:95%"></i>
-          <i style="height:45%"></i><i style="height:75%"></i><i style="height:50%"></i><i style="height:90%"></i>
-        </div>
-        <div class="plabel">Chill Vibes</div>
-        <div class="sublabel">Tap to play on Spotify</div>
-      </div>
-    </div>
-
-    <h1>Playlists you can hold.</h1>
-    <p class="lead">Beautiful cards that play your Spotify playlists with a single tap. Keep them, collect them &mdash; or give one as a gift.</p>
-
-    <div class="cta">
-      <!-- TODO: point at the real shop/checkout URL once the store is live. -->
-      <a class="btn shop" href="#shop">Shop the cards</a>
-    </div>
-
-    <div class="getapp">
-      <p class="label">Already have a card? Get the app to set it up.</p>
-      <div class="stores">
-        <!-- TODO: replace with the real App Store listing URL/id once published. -->
-        <a class="store" href="https://apps.apple.com/app/tunetap" aria-label="Download TuneTap on the App Store">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.22-1.17 3.02-.8.86-2.1 1.53-3.2 1.44-.14-1.1.42-2.28 1.13-3.05.79-.86 2.19-1.5 3.24-1.41zM20.7 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.56-2.39 3.5-4.12 3.51-1.54.02-1.94-1.01-4.03-1-2.09.01-2.53 1.02-4.07 1-1.73-.02-3.05-1.77-4.04-3.32-2.77-4.35-3.06-9.45-1.35-12.16 1.21-1.92 3.13-3.05 4.93-3.05 1.84 0 2.99 1.01 4.51 1.01 1.47 0 2.37-1.01 4.5-1.01 1.6 0 3.3.87 4.51 2.38-3.96 2.17-3.32 7.83.21 9.67z"/></svg>
-          <span class="txt"><small>Download on the</small><strong>App Store</strong></span>
-        </a>
-        <!-- Canonical Play listing URL for package to.tunetap.app (live once published). -->
-        <a class="store" href="https://play.google.com/store/apps/details?id=to.tunetap.app" aria-label="Get TuneTap on Google Play">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M3.6 2.2c-.2.2-.35.55-.35 1v17.6c0 .45.15.8.36 1L13 12z"/><path fill="#FBBC04" d="M17.1 8.4 13 12l4.1 3.6 3.6-2.05c1.05-.6 1.05-1.5 0-2.1z"/><path fill="#34A853" d="M3.61 21.8c.33.35.87.4 1.48.05L17.1 15.6 13 12z"/><path fill="#4285F4" d="M13 12 17.1 8.4 5.09 2.15C4.48 1.8 3.94 1.85 3.61 2.2z"/></svg>
-          <span class="txt"><small>Get it on</small><strong>Google Play</strong></span>
-        </a>
-      </div>
-    </div>
-
-    <div class="feats">
-      <div class="feat"><span class="ic">✨</span><span><b>Made to keep</b><span>A shelf-worthy little card for every mood.</span></span></div>
-      <div class="feat"><span class="ic">👆</span><span><b>One tap to play</b><span>Hold a card to your phone &mdash; the music starts.</span></span></div>
-      <div class="feat"><span class="ic">🎁</span><span><b>The perfect gift</b><span>Hand someone a playlist they can actually hold.</span></span></div>
-    </div>
-
-    <footer>Works with Spotify. Premium required to play.</footer>
-  </main>
+  <!-- "The Box" waitlist page, stacked above the TuneTap landing content.
+       Loaded in an iframe (its own document) so its styles/fonts/layout
+       can't collide with the TuneTap CSS below. -->
+  <iframe
+    id="box-landing-frame"
+    src="the-box-landing.html"
+    title="The Box — waitlist"
+    style="display:block; width:100%; border:0; height:600px;"
+    loading="lazy"
+    onload="try{this.style.height=(this.contentWindow.document.body.scrollHeight+1)+'px';}catch(e){}"
+  ></iframe>
 </body>
 </html>
