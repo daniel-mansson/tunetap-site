@@ -71,14 +71,7 @@
     padding: 64px 0;
   }
   @media (min-width: 768px){
-    .hero{ grid-template-columns: 1fr 1fr; gap: 64px; padding: 96px 0; }
-  }
-
-  .copy{ order: 2; }
-  .art{ order: 1; }
-  @media (min-width: 768px){
-    .copy{ order: 1; }
-    .art{ order: 2; }
+    .hero{ padding: 96px 0; }
   }
 
   h1{
@@ -147,14 +140,6 @@
   }
   .form-msg.success{ color: var(--foreground); }
 
-  .art img{
-    width: 100%;
-    display: block;
-    border-radius: var(--radius);
-    object-fit: cover;
-    box-shadow: 0 24px 60px -30px rgba(60,70,50,0.55);
-  }
-
   footer{
     border-top: 1px solid var(--border);
     padding-top: 24px;
@@ -190,9 +175,6 @@
         <p class="form-msg" id="form-msg" aria-live="polite">One email, at launch. Nothing before that.</p>
       </div>
 
-      <div class="art">
-        <img src="assets/hero-product.png" alt="The Box, a sage-green screen-free audio player, beside a tray of illustrated cards featuring Madicken, Ronja Rövardotter and Bröderna Lejonhjärta" loading="eager">
-      </div>
     </section>
 
     <footer>
